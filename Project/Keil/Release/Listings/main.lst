@@ -1,0 +1,134 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              11/09/2024 16:51:57 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Release\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\..\User\main.c LARGE OPTIMIZE(8,SPEED) BROWSE INTVECTOR(0X000C) INCDI
+                    -R(..\..\Libraries\Include;..\..\User;..\..\User\lib;..\..\Hardware) INTERVAL(3) DEBUG OBJECTEXTEND PRINT(.\Release\Listi
+                    -ngs\main.lst) OBJECT(.\Release\Objects\main.obj)
+
+line level    source
+
+   1          /**
+   2           ******************************************************************************
+   3           * @file    main.c
+   4           * @author  HUGE-IC Application Team
+   5           * @version V1.0.0
+   6           * @date    05-11-2022
+   7           * @brief   Main program body
+   8           ******************************************************************************
+   9           * @attention
+  10           *
+  11           * <h2><center>&copy; COPYRIGHT 2021 HUGE-IC</center></h2>
+  12           *
+  13           * 版权说明后续补上
+  14           *
+  15           ******************************************************************************
+  16           */
+  17          
+  18          /* Includes ------------------------------------------------------------------*/
+  19          #include "include.h"
+  20          #include "my_config.h"
+  21          
+  22          /** @addtogroup Template_Project
+  23           * @{
+  24           */
+  25          
+  26          /* Private typedef -----------------------------------------------------------*/
+  27          /* Private define ------------------------------------------------------------*/
+  28          /* Private macro -------------------------------------------------------------*/
+  29          /* Private variables ---------------------------------------------------------*/
+  30          /* Private function prototypes -----------------------------------------------*/
+  31          /* Private functions ---------------------------------------------------------*/
+  32          
+  33          // void iic_config(void)
+  34          // {
+  35          //     // IIC IO口配置开漏上拉: iic_data--P22(AF1)   iic_clk--P21(AF1)
+  36          //     // P2_MD0 &= ~(GPIO_P21_MODE_SEL(0x3) | GPIO_P22_MODE_SEL(0x3)); // 配置P00/P01为复用模式
+  37          //     // P2_MD0 |= (GPIO_P21_MODE_SEL(0x2) | GPIO_P22_MODE_SEL(0x2));
+  38          //     // P2_PU |= (GPIO_P21_PULL_UP(0x1) | GPIO_P22_PULL_UP(0x1));    // 上拉
+  39          //     // P2_ODN |= (GPIO_P21_ODN_EN(0x1) | GPIO_P22_ODN_EN(0x1));     // 开漏
+  40          //     // P2_AF0 |= (GPIO_P21_FUNC_SEL(0x1) | GPIO_P22_FUNC_SEL(0x1)); // 配置P21为clk线，P22为data线
+  41          
+  42          // }
+  43          
+  44          void main(void)
+  45          {
+  46   1          // 看门狗默认打开, 复位时间2s
+  47   1          system_init();
+  48   1      
+  49   1          WDT_KEY = WDT_KEY_VAL(0xDD); //  关闭看门狗
+  50   1      
+  51   1          // 关闭HCK和HDA的调试功能:
+  52   1          WDT_KEY = 0x55;
+  53   1          IO_MAP &= ~0x01;
+C51 COMPILER V9.60.7.0   MAIN                                                              11/09/2024 16:51:57 PAGE 2   
+
+  54   1          WDT_KEY = 0xBB;
+  55   1      
+  56   1          /* 用户代码初始化接口 */
+  57   1          user_init();
+  58   1          // iic_config();
+  59   1          aip650_config();
+  60   1          aip650e_init(&sg_650e_drv);
+  61   1      
+  62   1      
+  63   1          /* 按键初始化 */
+  64   1          // tk_param_init();
+  65   1      
+  66   1          /* 系统主循环 */
+  67   1          while (1)
+  68   1          {
+  69   2              /* 按键扫描函数 */
+  70   2              // __tk_scan(); // 使用了库里面的接口（闭源库）
+  71   2      
+  72   2              /* 用户循环扫描函数接口 */
+  73   2              // user_handle();
+  74   2      
+  75   2              // iic_master_tx(0x48, 1);
+  76   2              // iic_master_tx(0x00, 0);
+  77   2      
+  78   2              // iic_master_tx(0x48, 0);
+  79   2              // iic_master_tx(0x01, 0);            
+  80   2      
+  81   2              // iic_master_tx(0x68, 0);
+  82   2              // iic_master_tx(0xFF, 0);
+  83   2      
+  84   2              // iic_master_tx(0x6A, 0);
+  85   2              // iic_master_tx(0xFF, 0);
+  86   2      
+  87   2              // iic_master_tx(0x6C, 0);
+  88   2              // iic_master_tx(0xFF, 0);
+  89   2      
+  90   2              // iic_master_tx(0x6E, 0);
+  91   2              // iic_master_tx(0xFF, 2);
+  92   2      
+  93   2              test_aip650e();
+  94   2              delay_ms(500);
+  95   2      
+  96   2              // /* 喂狗 :建议不要关闭看门狗，默认2s复位*/
+  97   2              // WDT_KEY = WDT_KEY_VAL(0xAA);
+  98   2          }
+  99   1      }
+ 100          
+ 101          /**
+ 102           * @}
+ 103           */
+ 104          
+ 105          /*************************** (C) COPYRIGHT 2022 HUGE-IC ***** END OF FILE *****/
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     46    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+C51 COMPILER V9.60.7.0   MAIN                                                              11/09/2024 16:51:57 PAGE 3   
+
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
