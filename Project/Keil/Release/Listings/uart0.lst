@@ -1,0 +1,49 @@
+C51 COMPILER V9.60.7.0   UART0                                                             11/11/2024 17:28:53 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE UART0
+OBJECT MODULE PLACED IN .\Release\Objects\uart0.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\..\Hardware\uart0.c LARGE OPTIMIZE(8,SPEED) BROWSE INTVECTOR(0X000C) 
+                    -INCDIR(..\..\Libraries\Include;..\..\User;..\..\User\lib;..\..\Hardware) INTERVAL(3) DEBUG OBJECTEXTEND PRINT(.\Release\
+                    -Listings\uart0.lst) OBJECT(.\Release\Objects\uart0.obj)
+
+line level    source
+
+   1          #include "uart0.h"
+   2          
+   3          #define UART0_BAUD (115200UL)
+   4          
+   5          // 重写putchar()函数
+   6          char putchar(char uart_data)
+   7          {
+   8   1          UART0_DATA = uart_data;
+   9   1          while (!(UART0_STA & UART_TX_DONE(0x1)))
+  10   1              ; // 等待发送完成
+  11   1      
+  12   1          return uart_data;
+  13   1      }
+  14          
+  15          void uart0_config(void)
+  16          {
+  17   1          P0_MD0 &= ~GPIO_P02_MODE_SEL(0x03);
+  18   1          P0_MD0 |= GPIO_P02_MODE_SEL(0x01); // 输出模式
+  19   1          FOUT_S02 = GPIO_FOUT_UART0_TX; // 复用为uart0_tx
+  20   1      
+  21   1          UART0_BAUD1 = (((SYSCLK - UART0_BAUD) / UART0_BAUD) >> 8) & 0xFF;
+  22   1          UART0_BAUD0 = ((SYSCLK - UART0_BAUD) / UART0_BAUD) & 0xFF;
+  23   1          UART0_CON0 = UART_EN(0x01); // UART使能
+  24   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     34    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/09/2024 16:51:57 PAGE 1   
+C51 COMPILER V9.60.7.0   TK_USER                                                           11/11/2024 17:28:53 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE TK_USER
@@ -27,52 +27,43 @@ line level    source
   16           */
   17          
   18          /* Includes ------------------------------------------------------------------*/
-  19          #include "include.h"
-  20          #include "my_gpio.h"  // 自定义的、使用到的引脚
-  21          // #include "rf_recv.h"  // RF315解码和RF接收引脚相关的函数
-  22          #include "send_key.h" // 发送键值的引脚和相关函数
-  23          
-  24          // #include "rf_learn.h" // rf学习相关的函数
-  25          
-  26          #include "tmr2.h"
-  27          #include "tmr3.h"
-  28          // #include "rf_scan.h" // 包含了长短按信息的定义
-  29          
-  30          #include "key_conversion.h" // 包含了触摸按键对应的键值
-  31          
-  32          /** @addtogroup Template_Project
-  33           * @{
-  34           */
-  35          
-  36          /* Private typedef -----------------------------------------------------------*/
-  37          /* Private define ------------------------------------------------------------*/
-  38          /* Private macro -------------------------------------------------------------*/
-  39          /* Private variables ---------------------------------------------------------*/
-  40          /* Private function prototypes -----------------------------------------------*/
-  41          /* Private functions ---------------------------------------------------------*/
-  42          
-  43          /**
-  44           * @brief  Touchkey  debug uart init function
-  45           * @param  None
-  46           * @retval None
-  47           */
-  48          xdata u16 led_data[1];                           // LED显示buff
-  49          #define LED_DIS_FREQ (1000000 / 16 / 8 / 60 - 1) // 一个CON的显示时间60Hz    60-1=1M/(LED_COMCON*16*LED_TI
+  19          #include <stdio.h>
+  20          #include "include.h"
+  21          #include "my_config.h"
+  22          
+  23          /** @addtogroup Template_Project
+  24           * @{
+  25           */
+  26          
+  27          /* Private typedef -----------------------------------------------------------*/
+  28          /* Private define ------------------------------------------------------------*/
+  29          /* Private macro -------------------------------------------------------------*/
+  30          /* Private variables ---------------------------------------------------------*/
+  31          /* Private function prototypes -----------------------------------------------*/
+  32          /* Private functions ---------------------------------------------------------*/
+  33          
+  34          /**
+  35           * @brief  Touchkey  debug uart init function
+  36           * @param  None
+  37           * @retval None
+  38           */
+  39          // xdata u16 led_data[1];                           // LED显示buff
+  40          #define LED_DIS_FREQ (1000000 / 16 / 8 / 60 - 1) // 一个CON的显示时间60Hz    60-1=1M/(LED_COMCON*16*LED_TI
              -ME_CON)
-  50          
-  51          unsigned int xdata display_data = 0;
-  52          
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/09/2024 16:51:57 PAGE 2   
-
-  53          /**
-  54           * @brief  调试接口IO初始化函数.
-  55           * @param  None
-  56           * @retval None
-  57           */
-  58          #if TK_DEBUG_EN
+  41          
+  42          unsigned int xdata display_data = 0;
+  43          
+  44          /**
+  45           * @brief  调试接口IO初始化函数.
+  46           * @param  None
+  47           * @retval None
+  48           */
+  49          #if TK_DEBUG_EN
               void debug_gpio_config(void)
               {
               #if 1
+C51 COMPILER V9.60.7.0   TK_USER                                                           11/11/2024 17:28:53 PAGE 2   
+
                   P2_MD0 &= ~GPIO_P21_MODE_SEL(0x03);
                   P2_MD0 |= GPIO_P21_MODE_SEL(0x01);
                   FOUT_S21 = GPIO_FOUT_UART1_TX;
@@ -83,563 +74,459 @@ line level    source
               #endif
               }
               #endif
-  72          
-  73          /**
-  74           * @brief  LED INIT FUNCTION
-  75           * @param  None
-  76           * @retval None
-  77           */
-  78          // 在开发板上：
-  79          // P2_7连接到四个蓝色LED的负极的公共端
-  80          // P0_3连接到LED1正极
-  81          // P3_0连接到LED2正极
-  82          // P1_0连接到LED3正极
-  83          // P0_7连接到LED4正极
-  84          void led_init(void)
-  85          {
-  86   1          // 配置COM0   P27为输出模式
-  87   1          // P2_MD1，P2的工作模式寄存器1
-  88   1          P2_MD1 &= ~GPIO_P27_MODE_SEL(0x3); // 清零P2_MD1寄存器的6-7位
-  89   1          P2_MD1 |= GPIO_P27_MODE_SEL(0x1);  // P2_MD1的6~7位设置为0x01，这样会将P2的第7个IO设置为输出模式
-  90   1      
-  91   1          // 配置IO的驱动能力
-  92   1          // P2的第7个IO的驱动电流为8mA
-  93   1          P2_DRV7 = GPIO_P27_DRV_SEL(0x1);
-  94   1      
-  95   1          // 配置SEG0-SEG4 P03\P30\P10\P07-输出模式
-  96   1          // P0_3、P3_0、P1_0和P0_1配置为输出模式
-  97   1          // 下面是先清零，再置位的操作
-  98   1          P0_MD0 &= ~GPIO_P03_MODE_SEL(0x3);
-  99   1          P3_MD0 &= ~GPIO_P30_MODE_SEL(0x3);
- 100   1          P1_MD0 &= ~GPIO_P10_MODE_SEL(0x3);
- 101   1          P0_MD1 &= ~GPIO_P07_MODE_SEL(0x3);
- 102   1      
- 103   1          P0_MD0 |= GPIO_P03_MODE_SEL(0x1);
- 104   1          P3_MD0 |= GPIO_P30_MODE_SEL(0x1);
- 105   1          P1_MD0 |= GPIO_P10_MODE_SEL(0x1);
- 106   1          P0_MD1 |= GPIO_P07_MODE_SEL(0x1);
- 107   1      
- 108   1          // SEG0-SEG4 P03\P30\P10\P07
- 109   1          // 配置P0_3、P3_0、P1_0和P0_1的输出功能，驱动LED（应该是连接到了片上外设LED模块，这个模块是个控制器）
- 110   1          FOUT_S03 = GPIO_FOUT_LED_SEG0;
- 111   1          FOUT_S30 = GPIO_FOUT_LED_SEG1;
- 112   1          FOUT_S10 = GPIO_FOUT_LED_SEG2;
- 113   1          FOUT_S07 = GPIO_FOUT_LED_SEG3;
- 114   1      
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/09/2024 16:51:57 PAGE 3   
-
- 115   1          // 配置P0_3、P3_0、P1_0和P0_1的输出电流，8mA
- 116   1          P0_DRV3 = GPIO_P03_DRV_SEL(0x1);
- 117   1          P3_DRV0 = GPIO_P30_DRV_SEL(0x1);
- 118   1          P1_DRV0 = GPIO_P10_DRV_SEL(0x1);
- 119   1          P0_DRV7 = GPIO_P07_DRV_SEL(0x1);
- 120   1      
- 121   1          // COM0 P27
- 122   1          // 配置P2_7的输出功能，连接到LED的公共端0
- 123   1          FOUT_S27 = GPIO_FOUT_LED_COM0;
- 124   1      
- 125   1          CLK_CON2 |= CLK_LED_EN(0x1); // 打开LED模块的时钟（打开片上外设LED模块的时钟）
- 126   1      
- 127   1          // 0x55表示允许访问和设置 wdt_psr（在WDT_CON中，psr表示看门狗定时时间）
- 128   1          WDT_KEY = 0x55;                // 操作IO_MAP寄存器需要写KEY
- 129   1          IO_MAP |= MAP_LED_DMA_EN(0x1); // LED DMA使能
- 130   1          WDT_KEY = 0xBB;                // 写入一个错误的数值，恢复该寄存器的写保护
- 131   1      
- 132   1          // 打开LED模块的时钟
- 133   1          CLK_CON2 |= 0x10;
- 134   1      
- 135   1          LED_SEGCONL = LED_SEG0_EN(0x1) | // SEG0 使能
- 136   1                        LED_SEG1_EN(0x1) | // SEG0 使能
- 137   1                        LED_SEG2_EN(0x1) | // SEG0 使能
- 138   1                        LED_SEG3_EN(0x1);  // SEG0 使能
- 139   1          LED_COMCON = LED_COM0_EN(0x1);   // COM1 使能
- 140   1      
- 141   1          LED_DMAADRH = LED_DMA_ADDR_H((((u16)led_data) >> 8) & 0xFF); // LED数据储存首地址的高8位
- 142   1          LED_DMAADRL = LED_DMA_ADDR_L((((u16)led_data) >> 0) & 0xFF); // LED数据储存首地址的低8位
- 143   1          LED_TIMECON = LED_SCAN_TIME(LED_DIS_FREQ);                   // 扫描到某个com或seg时点亮的时间,步长为3
-             -2微秒
- 144   1          LED_CON = LED_COM_SEG_SEL(0x0) |                             // 扫描方式选择com扫描
- 145   1                    LED_EN(0x1);                                       // LED使能,使能之后从DMAADDRH和DMAADDRL的
-             -地址开始拿数据扫描点亮,用户将数据写到对应的地址即可
- 146   1      
- 147   1          led_data[0] = 0x00000f00; // 一开始让四个LED全部点亮
- 148   1          // led_data[0] = 0x00000000; // 一开始让四个LED全部熄灭
- 149   1      }
- 150          
- 151          /**
- 152           * @brief  用户代码初始化函数接口.
- 153           * @param  None
- 154           * @retval None
- 155           */
- 156          void user_init(void)
- 157          {
- 158   1          // led_init(); // 初始化LED相关的引脚
- 159   1      
- 160   1          // rfin_init(); // RF315接收引脚初始化，这里也初始化了tmr0
- 161   1      
- 162   1          // p12_output_config(); // 测试用，P12初始化，配置为输出模式
- 163   1      
- 164   1          // send_keyval_pin_init();   // 初始化键值的发送引脚
- 165   1          // send_keyval_timer_init(); // 初始化发送键值的引脚所使用到的定时器，定时器默认关闭
- 166   1      
- 167   1          // tmr0_enable(); // 打开采集RF信号的定时器
- 168   1          // // tmr1_enable(); // 打开发送键值的引脚所使用到的定时器，测试用，看看定时器中断是否按配置的时间触发
- 169   1      
- 170   1          // tmr2_config(); // 上电5s内的"学习"所使用的定时器
- 171   1          // tmr3_config(); // 配置定时器，每10ms产生一次中断，对应的计数值+1，用来判断按键的短按、长按和持续
- 172   1          // tmr4_config(); // 打开识别遥控器双击所需要的定时器
- 173   1      
- 174   1          // p01_output_config(); // 开发板LED6对应的引脚初始化
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/09/2024 16:51:57 PAGE 4   
-
- 175   1          // p26_output_config(); // 开发板LED7对应的引脚初始化
- 176   1      }
- 177          
- 178          /**
- 179           * @brief  用户代码循环执行函数接口.（触摸按键扫描函数接口）
- 180           * @param  None
- 181           * @retval None
- 182           */
- 183          #define send_sp (100)
- 184          void user_handle(void)
- 185          {
- 186   1          volatile unsigned long int KeyOnOutput = __tk_key_flag; // __tk_key_flag单次按键标志
- 187   1      
- 188   1          static volatile unsigned long int KeyOld = 0; // 用于存放长按时，对应的按键
- 189   1      
- 190   1          // 是否长按的标志，0--否，1--是
- 191   1          // 需要保存长按的状态，表示定时器一直在发送键值
- 192   1          static unsigned char long_touch_flag = 0; // 上一次扫描到的按键是否为长按的标志
- 193   1      
- 194   1          static volatile u32 cnt = 0; // 长按计数值
- 195   1      
- 196   1          u32 i = 0; // 循环计数值
- 197   1      
- 198   1          u16 send_data = 0; // 要发送的带有键值的数据
- 199   1      
- 200   1          if (KeyOnOutput && 0 == long_touch_flag && cnt < TK_LONG_KEY_TIME) // 如果有按键按下（并且之前扫描到的
+  63          
+  64          /**
+  65           * @brief  用户代码循环执行函数接口.（触摸按键扫描函数接口）
+  66           * @param  None
+  67           * @retval None
+  68           */
+  69          #define send_sp (100)
+  70          void user_handle(void)
+  71          {
+  72   1          volatile unsigned long int KeyOnOutput = __tk_key_flag; // __tk_key_flag单次按键标志
+  73   1      
+  74   1          static volatile unsigned long int KeyOld = 0; // 用于存放长按时，对应的按键
+  75   1      
+  76   1          // 是否长按的标志，0--否，1--是
+  77   1          // 需要保存长按的状态，表示定时器一直在发送键值
+  78   1          static unsigned char long_touch_flag = 0; // 上一次扫描到的按键是否为长按的标志
+  79   1      
+  80   1          static volatile u32 cnt = 0; // 长按计数值
+  81   1      
+  82   1          u32 i = 0; // 循环计数值
+  83   1      
+  84   1          u16 send_data = 0; // 要发送的带有键值的数据
+  85   1      
+  86   1          if (KeyOnOutput && 0 == long_touch_flag && cnt < TK_LONG_KEY_TIME) // 如果有按键按下（并且之前扫描到的
              -不是长按）
- 201   1          {
- 202   2              // 通过循环判断是否为长按
- 203   2              for (i = 0; i < 500000; i++) // 实际上用不到这么大的数字，到了设定的长按时间就会退出
- 204   2              {
- 205   3                  // 按键扫描函数，使用了库里面的接口（闭源库）
- 206   3                  // 这个函数会更新__tk_key_flag的值
- 207   3                  delay_ms(10);
- 208   3                  __tk_scan();
- 209   3      
- 210   3                  if (KeyOnOutput == __tk_key_flag)
- 211   3                  {
- 212   4                      // 如果按键键值一致，说明按键一直被按下，未松开
- 213   4                      cnt++;
- 214   4                  }
- 215   3                  else
- 216   3                  {
- 217   4                      // 如果按键键值不一致或是松开了按键
- 218   4                      // cnt = 0;
- 219   4                      break;
+  87   1          {
+  88   2              // 通过循环判断是否为长按
+  89   2              for (i = 0; i < 500000; i++) // 实际上用不到这么大的数字，到了设定的长按时间就会退出
+  90   2              {
+  91   3                  // 按键扫描函数，使用了库里面的接口（闭源库）
+  92   3                  // 这个函数会更新__tk_key_flag的值
+  93   3                  delay_ms(10);
+  94   3                  __tk_scan();
+  95   3      
+  96   3                  if (KeyOnOutput == __tk_key_flag)
+  97   3                  {
+  98   4                      // 如果按键键值一致，说明按键一直被按下，未松开
+  99   4                      cnt++;
+ 100   4                  }
+ 101   3                  else
+ 102   3                  {
+ 103   4                      // 如果按键键值不一致或是松开了按键
+ 104   4                      // cnt = 0;
+ 105   4                      break;
+ 106   4                  }
+ 107   3                  if (cnt > TK_LONG_KEY_TIME) // 如果长按超过了这里设置的时间
+ 108   3                  {
+ 109   4                      long_touch_flag = 1; // 标记为长按
+ 110   4                      break;
+ 111   4                  }
+ 112   3              }
+ 113   2      
+C51 COMPILER V9.60.7.0   TK_USER                                                           11/11/2024 17:28:53 PAGE 3   
+
+ 114   2              if (cnt > TK_LONG_KEY_TIME)
+ 115   2              {
+ 116   3                  long_touch_flag = 1; // 标记为长按
+ 117   3              }
+ 118   2              else
+ 119   2              {
+ 120   3                  // 如果是短按
+ 121   3                  cnt = 0; // 清除长按的计数值
+ 122   3      
+ 123   3                  // 判断当前触摸的键值，做对应的操作
+ 124   3                  if (TK_CH24_VALIB == KeyOnOutput)
+ 125   3                  {
+ 126   4                      // 如果KEY1被触摸
+ 127   4                      for (i = 0; i < send_sp; i++)
+ 128   4                      {
+ 129   5                          delay_ms(1);
+ 130   5                          __tk_scan();
+ 131   5                          KeyOnOutput = __tk_key_flag;
+ 132   5      
+ 133   5                          if (TK_CH24_VALIB == KeyOnOutput)
+ 134   5                          {
+ 135   6                              // 如果检测到是同一个按键按下，说明是双击
+ 136   6                              // 等待手指松开按键，不然发送完带有双击状态的键值后会再发送一次单击状态的键值
+ 137   6                              while (0 != KeyOnOutput)
+ 138   6                              {
+ 139   7                                  __tk_scan();
+ 140   7                                  KeyOnOutput = __tk_key_flag;
+ 141   7                              }
+ 142   6      #if USE_MY_DEBUG
+ 143   6                              printf("k1 double press\n");
+ 144   6      #endif
+ 145   6                              send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY1);
+ 146   6                              return;
+ 147   6                          }
+ 148   5                      }
+ 149   4      
+ 150   4      // 如果不是同一个按键按下或是没有值，说明是短按
+ 151   4      #if USE_MY_DEBUG
+ 152   4                      printf("k1 press\n");
+ 153   4      #endif
+ 154   4                      send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY1); // 发送带有状态的键值
+ 155   4                  }
+ 156   3                  else if (TK_CH25_VALIB == KeyOnOutput)
+ 157   3                  {
+ 158   4                      // 如果KEY2被触摸
+ 159   4                      for (i = 0; i < send_sp; i++)
+ 160   4                      {
+ 161   5                          delay_ms(1);
+ 162   5                          __tk_scan();
+ 163   5                          KeyOnOutput = __tk_key_flag;
+ 164   5      
+ 165   5                          if (TK_CH25_VALIB == KeyOnOutput)
+ 166   5                          {
+ 167   6                              // 如果检测到是同一个按键按下，说明是双击
+ 168   6                              // 等待手指松开按键，不然发送完带有双击状态的键值后会再发送一次单击状态的键值
+ 169   6                              while (0 != KeyOnOutput)
+ 170   6                              {
+ 171   7                                  __tk_scan();
+ 172   7                                  KeyOnOutput = __tk_key_flag;
+ 173   7                              }
+ 174   6      #if USE_MY_DEBUG
+ 175   6                              printf("k2 double press\n");
+C51 COMPILER V9.60.7.0   TK_USER                                                           11/11/2024 17:28:53 PAGE 4   
+
+ 176   6      #endif
+ 177   6                              send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY2);
+ 178   6                              return;
+ 179   6                          }
+ 180   5                      }
+ 181   4      
+ 182   4      // 如果不是同一个按键按下或是没有值，说明是短按
+ 183   4      #if USE_MY_DEBUG
+ 184   4                      printf("k2 press\n");
+ 185   4      #endif
+ 186   4                      send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY2); // 发送带有状态的键值
+ 187   4                  }
+ 188   3                  else if (TK_CH23_VALIB == KeyOnOutput)
+ 189   3                  {
+ 190   4                      // 如果KEY3被触摸
+ 191   4                      for (i = 0; i < send_sp; i++)
+ 192   4                      {
+ 193   5                          delay_ms(1);
+ 194   5                          __tk_scan();
+ 195   5                          KeyOnOutput = __tk_key_flag;
+ 196   5      
+ 197   5                          if (TK_CH23_VALIB == KeyOnOutput)
+ 198   5                          {
+ 199   6                              // 如果检测到是同一个按键按下，说明是双击
+ 200   6                              // 等待手指松开按键，不然发送完带有双击状态的键值后会再发送一次单击状态的键值
+ 201   6                              while (0 != KeyOnOutput)
+ 202   6                              {
+ 203   7                                  __tk_scan();
+ 204   7                                  KeyOnOutput = __tk_key_flag;
+ 205   7                              }
+ 206   6      
+ 207   6      #if USE_MY_DEBUG
+ 208   6                              printf("k3 double press\n");
+ 209   6      #endif
+ 210   6                              send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY3);
+ 211   6                              return;
+ 212   6                          }
+ 213   5                      }
+ 214   4      
+ 215   4                      // 如果不是同一个按键按下或是没有值，说明是短按
+ 216   4      #if USE_MY_DEBUG
+ 217   4                      printf("k3 press\n");
+ 218   4      #endif
+ 219   4                      send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY3); // 发送带有状态的键值
  220   4                  }
- 221   3                  if (cnt > TK_LONG_KEY_TIME) // 如果长按超过了这里设置的时间
+ 221   3                  else if (TK_CH17_VALIB == KeyOnOutput)
  222   3                  {
- 223   4                      long_touch_flag = 1; // 标记为长按
- 224   4                      break;
- 225   4                  }
- 226   3              }
- 227   2      
- 228   2              if (cnt > TK_LONG_KEY_TIME)
- 229   2              {
- 230   3                  long_touch_flag = 1; // 标记为长按
- 231   3              }
- 232   2              else
- 233   2              {
- 234   3                  // 如果是短按
- 235   3                  cnt = 0; // 清除长按的计数值
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/09/2024 16:51:57 PAGE 5   
+ 223   4                      // 如果KEY4被触摸
+ 224   4                      for (i = 0; i < send_sp; i++)
+ 225   4                      {
+ 226   5                          delay_ms(1);
+ 227   5                          __tk_scan();
+ 228   5                          KeyOnOutput = __tk_key_flag;
+ 229   5      
+ 230   5                          if (TK_CH17_VALIB == KeyOnOutput)
+ 231   5                          {
+ 232   6                              // 如果检测到是同一个按键按下，说明是双击
+ 233   6                              // 等待手指松开按键，不然发送完带有双击状态的键值后会再发送一次单击状态的键值
+ 234   6                              while (0 != KeyOnOutput)
+ 235   6                              {
+ 236   7                                  __tk_scan();
+ 237   7                                  KeyOnOutput = __tk_key_flag;
+C51 COMPILER V9.60.7.0   TK_USER                                                           11/11/2024 17:28:53 PAGE 5   
 
- 236   3      
- 237   3                  // 判断当前触摸的键值，做对应的操作
- 238   3                  if (TK_CH24_VALIB == KeyOnOutput)
- 239   3                  {
- 240   4                      // 如果KEY1被触摸
- 241   4                      for (i = 0; i < send_sp; i++)
- 242   4                      {
- 243   5                          delay_ms(1);
- 244   5                          __tk_scan();
- 245   5                          KeyOnOutput = __tk_key_flag;
- 246   5      
- 247   5                          if (TK_CH24_VALIB == KeyOnOutput)
- 248   5                          {
- 249   6                              // 如果检测到是同一个按键按下，说明是双击
- 250   6                              // 等待手指松开按键，不然发送完带有双击状态的键值后会再发送一次单击状态的键值
- 251   6                              while (0 != KeyOnOutput)
- 252   6                              {
- 253   7                                  __tk_scan();
- 254   7                                  KeyOnOutput = __tk_key_flag;
- 255   7                              }
- 256   6      
- 257   6                              // send_status_keyval(KEY_PRESS_DOUBLECLICK, KEY_TK1);
- 258   6                              return;
- 259   6                          }
- 260   5                      }
- 261   4      
- 262   4                      // 如果不是同一个按键按下或是没有值，说明是短按
- 263   4                      // send_status_keyval(KEY_PRESS_SHORT, KEY_TK1); // 发送带有状态的键值
- 264   4                  }
- 265   3                  else if (TK_CH3_VALIB == KeyOnOutput)
- 266   3                  {
- 267   4                      // 如果KEY2被触摸
- 268   4                      for (i = 0; i < send_sp; i++)
- 269   4                      {
- 270   5                          delay_ms(1);
- 271   5                          __tk_scan();
- 272   5                          KeyOnOutput = __tk_key_flag;
- 273   5      
- 274   5                          if (TK_CH3_VALIB == KeyOnOutput)
- 275   5                          {
- 276   6                              // 如果检测到是同一个按键按下，说明是双击
- 277   6                              // 等待手指松开按键，不然发送完带有双击状态的键值后会再发送一次单击状态的键值
- 278   6                              while (0 != KeyOnOutput)
- 279   6                              {
- 280   7                                  __tk_scan();
- 281   7                                  KeyOnOutput = __tk_key_flag;
- 282   7                              }
- 283   6      
- 284   6                              // send_status_keyval(KEY_PRESS_DOUBLECLICK, KEY_TK2);
- 285   6                              return;
- 286   6                          }
- 287   5                      }
- 288   4      
- 289   4                      // 如果不是同一个按键按下或是没有值，说明是短按
- 290   4                      // send_status_keyval(KEY_PRESS_SHORT, KEY_TK2); // 发送带有状态的键值
- 291   4                  }
- 292   3                  else if (TK_CH2_VALIB == KeyOnOutput)
- 293   3                  {
- 294   4                      // 如果KEY3被触摸
- 295   4                      for (i = 0; i < send_sp; i++)
- 296   4                      {
- 297   5                          delay_ms(1);
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/09/2024 16:51:57 PAGE 6   
+ 238   7                              }
+ 239   6      
+ 240   6      #if USE_MY_DEBUG
+ 241   6                              printf("k4 double press\n");
+ 242   6      #endif
+ 243   6                              send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY4);
+ 244   6                              return;
+ 245   6                          }
+ 246   5                      }
+ 247   4      
+ 248   4                      // 如果不是同一个按键按下或是没有值，说明是短按
+ 249   4      #if USE_MY_DEBUG
+ 250   4                      printf("k4 press\n");
+ 251   4      #endif
+ 252   4                      send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY4); // 发送带有状态的键值
+ 253   4                  }
+ 254   3                  else if (TK_CH15_VALIB == KeyOnOutput)
+ 255   3                  {
+ 256   4                      // 如果KEY5被触摸
+ 257   4                      for (i = 0; i < send_sp; i++)
+ 258   4                      {
+ 259   5                          delay_ms(1);
+ 260   5                          __tk_scan();
+ 261   5                          KeyOnOutput = __tk_key_flag;
+ 262   5      
+ 263   5                          if (TK_CH15_VALIB == KeyOnOutput)
+ 264   5                          {
+ 265   6                              // 如果检测到是同一个按键按下，说明是双击
+ 266   6                              // 等待手指松开按键，不然发送完带有双击状态的键值后会再发送一次单击状态的键值
+ 267   6                              while (0 != KeyOnOutput)
+ 268   6                              {
+ 269   7                                  __tk_scan();
+ 270   7                                  KeyOnOutput = __tk_key_flag;
+ 271   7                              }
+ 272   6      #if USE_MY_DEBUG
+ 273   6                              printf("k5 double press\n");
+ 274   6      #endif
+ 275   6                              send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY5);
+ 276   6                              return;
+ 277   6                          }
+ 278   5                      }
+ 279   4      
+ 280   4      // 如果不是同一个按键按下或是没有值，说明是短按
+ 281   4      #if USE_MY_DEBUG
+ 282   4                      printf("k5 press\n");
+ 283   4      #endif
+ 284   4                      send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY5); // 发送带有状态的键值
+ 285   4                  }
+ 286   3              }
+ 287   2          }
+ 288   1      
+ 289   1          if (1 == long_touch_flag && 0 != KeyOnOutput)
+ 290   1          {
+ 291   2              KeyOld = KeyOnOutput;
+ 292   2      
+ 293   2              // 如果之前是长按，现在还未松开
+ 294   2              // 判断当前触摸的键值，做对应的操作
+ 295   2              if (TK_CH24_VALIB == KeyOnOutput)
+ 296   2              {
+ 297   3                  // 如果KEY1被触摸
+ 298   3                  if (cnt >= TK_LONG_KEY_TIME && cnt < 90)
+ 299   3                  {
+C51 COMPILER V9.60.7.0   TK_USER                                                           11/11/2024 17:28:53 PAGE 6   
 
- 298   5                          __tk_scan();
- 299   5                          KeyOnOutput = __tk_key_flag;
- 300   5      
- 301   5                          if (TK_CH2_VALIB == KeyOnOutput)
- 302   5                          {
- 303   6                              // 如果检测到是同一个按键按下，说明是双击
- 304   6                              // 等待手指松开按键，不然发送完带有双击状态的键值后会再发送一次单击状态的键值
- 305   6                              while (0 != KeyOnOutput)
- 306   6                              {
- 307   7                                  __tk_scan();
- 308   7                                  KeyOnOutput = __tk_key_flag;
- 309   7                              }
- 310   6      
- 311   6                              // send_status_keyval(KEY_PRESS_DOUBLECLICK, KEY_TK3);
- 312   6                              return;
- 313   6                          }
- 314   5                      }
- 315   4      
- 316   4                      // 如果不是同一个按键按下或是没有值，说明是短按
- 317   4                      // send_status_keyval(KEY_PRESS_SHORT, KEY_TK3); // 发送带有状态的键值
- 318   4                  }
- 319   3                  else if (TK_CH0_VALIB == KeyOnOutput)
- 320   3                  {
- 321   4                      // 如果KEY4被触摸
- 322   4                      for (i = 0; i < send_sp; i++)
- 323   4                      {
- 324   5                          delay_ms(1);
- 325   5                          __tk_scan();
- 326   5                          KeyOnOutput = __tk_key_flag;
- 327   5      
- 328   5                          if (TK_CH0_VALIB == KeyOnOutput)
- 329   5                          {
- 330   6                              // 如果检测到是同一个按键按下，说明是双击
- 331   6                              // 等待手指松开按键，不然发送完带有双击状态的键值后会再发送一次单击状态的键值
- 332   6                              while (0 != KeyOnOutput)
- 333   6                              {
- 334   7                                  __tk_scan();
- 335   7                                  KeyOnOutput = __tk_key_flag;
- 336   7                              }
- 337   6      
- 338   6                              // send_status_keyval(KEY_PRESS_DOUBLECLICK, KEY_TK4);
- 339   6                              return;
- 340   6                          }
- 341   5                      }
+ 300   4      #if USE_MY_DEBUG
+ 301   4                      printf("k1 long press\n");
+ 302   4      #endif
+ 303   4                      send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY1);
+ 304   4                  }
+ 305   3      
+ 306   3                  // 若还不松开手，则每隔150ms发送一次带有持续状态信息的键值信号
+ 307   3                  while (0 != KeyOnOutput)
+ 308   3                  {
+ 309   4                      delay_ms(10);
+ 310   4                      cnt++;
+ 311   4                      __tk_scan();
+ 312   4                      KeyOnOutput = __tk_key_flag;
+ 313   4      
+ 314   4                      if (cnt >= 87) // 原本是填90的，但是软件延时有误差，这里只能慢慢调试
+ 315   4                      {
+ 316   5                          cnt = TK_LONG_KEY_TIME;
+ 317   5      #if USE_MY_DEBUG
+ 318   5                          printf("k1 continue press\n");
+ 319   5      #endif
+ 320   5                          send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY1);
+ 321   5                      }
+ 322   4                  }
+ 323   3              }
+ 324   2              else if (TK_CH25_VALIB == KeyOnOutput)
+ 325   2              {
+ 326   3                  // 如果KEY2被触摸
+ 327   3                  if (cnt >= TK_LONG_KEY_TIME && cnt < 90)
+ 328   3                  {
+ 329   4      #if USE_MY_DEBUG
+ 330   4                      printf("k2 long press\n");
+ 331   4      #endif
+ 332   4                      send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY2);
+ 333   4                  }
+ 334   3      
+ 335   3                  // 若还不松开手，则每隔150ms发送一次带有持续状态信息的键值信号
+ 336   3                  while (0 != KeyOnOutput)
+ 337   3                  {
+ 338   4                      delay_ms(10);
+ 339   4                      cnt++;
+ 340   4                      __tk_scan();
+ 341   4                      KeyOnOutput = __tk_key_flag;
  342   4      
- 343   4                      // 如果不是同一个按键按下或是没有值，说明是短按
- 344   4                      // send_status_keyval(KEY_PRESS_SHORT, KEY_TK4); // 发送带有状态的键值
- 345   4                  }
- 346   3                  else if (TK_CH9_VALIB == KeyOnOutput)
- 347   3                  {
- 348   4                      // 如果KEY5被触摸
- 349   4                      for (i = 0; i < send_sp; i++)
- 350   4                      {
- 351   5                          delay_ms(1);
- 352   5                          __tk_scan();
- 353   5                          KeyOnOutput = __tk_key_flag;
- 354   5      
- 355   5                          if (TK_CH9_VALIB == KeyOnOutput)
- 356   5                          {
- 357   6                              // 如果检测到是同一个按键按下，说明是双击
- 358   6                              // 等待手指松开按键，不然发送完带有双击状态的键值后会再发送一次单击状态的键值
- 359   6                              while (0 != KeyOnOutput)
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/09/2024 16:51:57 PAGE 7   
+ 343   4                      if (cnt >= 87) // 原本是填90的，但是软件延时有误差，这里只能慢慢调试
+ 344   4                      {
+ 345   5                          cnt = TK_LONG_KEY_TIME;
+ 346   5      #if USE_MY_DEBUG
+ 347   5                          printf("k2 continue press\n");
+ 348   5      #endif
+ 349   5                          send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY2);
+ 350   5                      }
+ 351   4                  }
+ 352   3      
+ 353   3                  // display_data ^= 0x0200; // 对应的LED状态取反，后面会调用led_display()刷新
+ 354   3                  // led_display();          // LED状态更新显示
+ 355   3              }
+ 356   2              else if (TK_CH23_VALIB == KeyOnOutput)
+ 357   2              {
+ 358   3                  // 如果KEY3被触摸
+ 359   3                  if (cnt >= TK_LONG_KEY_TIME && cnt < 90)
+ 360   3                  {
+ 361   4      #if USE_MY_DEBUG
+C51 COMPILER V9.60.7.0   TK_USER                                                           11/11/2024 17:28:53 PAGE 7   
 
- 360   6                              {
- 361   7                                  __tk_scan();
- 362   7                                  KeyOnOutput = __tk_key_flag;
- 363   7                              }
- 364   6      
- 365   6                              // send_status_keyval(KEY_PRESS_DOUBLECLICK, KEY_TK5);
- 366   6                              return;
- 367   6                          }
- 368   5                      }
- 369   4      
- 370   4                      // 如果不是同一个按键按下或是没有值，说明是短按
- 371   4                      // send_status_keyval(KEY_PRESS_SHORT, KEY_TK5); // 发送带有状态的键值
- 372   4                  }
- 373   3                  else if (TK_CH10_VALIB == KeyOnOutput)
- 374   3                  {
- 375   4                      // 如果KEY6被触摸
- 376   4                      for (i = 0; i < send_sp; i++)
- 377   4                      {
- 378   5                          delay_ms(1);
- 379   5                          __tk_scan();
- 380   5                          KeyOnOutput = __tk_key_flag;
- 381   5      
- 382   5                          if (TK_CH10_VALIB == KeyOnOutput)
- 383   5                          {
- 384   6                              // 如果检测到是同一个按键按下，说明是双击
- 385   6                              // 等待手指松开按键，不然发送完带有双击状态的键值后会再发送一次单击状态的键值
- 386   6                              while (0 != KeyOnOutput)
- 387   6                              {
- 388   7                                  __tk_scan();
- 389   7                                  KeyOnOutput = __tk_key_flag;
- 390   7                              }
- 391   6      
- 392   6                              // send_status_keyval(KEY_PRESS_DOUBLECLICK, KEY_TK6);
- 393   6                              return;
- 394   6                          }
- 395   5                      }
- 396   4      
- 397   4                      // 如果不是同一个按键按下或是没有值，说明是短按
- 398   4                      // send_status_keyval(KEY_PRESS_SHORT, KEY_TK6); // 发送带有状态的键值
- 399   4                  }
- 400   3              }
- 401   2          }
- 402   1      
- 403   1          if (1 == long_touch_flag && 0 != KeyOnOutput)
- 404   1          {
- 405   2              KeyOld = KeyOnOutput;
- 406   2      
- 407   2              // 如果之前是长按，现在还未松开
- 408   2              // 判断当前触摸的键值，做对应的操作
- 409   2              if (TK_CH24_VALIB == KeyOnOutput)
- 410   2              {
- 411   3                  // 如果KEY1被触摸
- 412   3                  if (cnt >= TK_LONG_KEY_TIME && cnt < 90)
- 413   3                  {
- 414   4                      // send_status_keyval(KEY_PRESS_LONG, KEY_TK1);
- 415   4                  }
- 416   3      
- 417   3                  // 若还不松开手，则每隔150ms发送一次带有持续状态信息的键值信号
- 418   3                  while (0 != KeyOnOutput)
- 419   3                  {
- 420   4                      delay_ms(10);
- 421   4                      cnt++;
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/09/2024 16:51:57 PAGE 8   
+ 362   4                      printf("k3 long press\n");
+ 363   4      #endif
+ 364   4                      send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY3);
+ 365   4                  }
+ 366   3      
+ 367   3                  // 若还不松开手，则每隔150ms发送一次带有持续状态信息的键值信号
+ 368   3                  while (0 != KeyOnOutput)
+ 369   3                  {
+ 370   4                      delay_ms(10);
+ 371   4                      cnt++;
+ 372   4                      __tk_scan();
+ 373   4                      KeyOnOutput = __tk_key_flag;
+ 374   4      
+ 375   4                      if (cnt >= 87) // 原本是填90的，但是软件延时有误差，这里只能慢慢调试
+ 376   4                      {
+ 377   5                          cnt = TK_LONG_KEY_TIME;
+ 378   5      #if USE_MY_DEBUG
+ 379   5                          printf("k3 continue press\n");
+ 380   5      #endif
+ 381   5                          send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY3);
+ 382   5                      }
+ 383   4                  }
+ 384   3              }
+ 385   2              else if (TK_CH17_VALIB == KeyOnOutput)
+ 386   2              {
+ 387   3                  // 如果KEY4被触摸
+ 388   3                  if (cnt >= TK_LONG_KEY_TIME && cnt < 90)
+ 389   3                  {
+ 390   4                      // display_data ^= 0x0800; // 对应的LED状态取反，后面会调用led_display()刷新
+ 391   4                      // led_display();          // LED状态更新显示
+ 392   4      #if USE_MY_DEBUG
+ 393   4                      printf("k4 long press\n");
+ 394   4      #endif
+ 395   4                      send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY4);
+ 396   4                  }
+ 397   3      
+ 398   3                  // 若还不松开手，则每隔150ms发送一次带有持续状态信息的键值信号
+ 399   3                  while (0 != KeyOnOutput)
+ 400   3                  {
+ 401   4                      delay_ms(10);
+ 402   4                      cnt++;
+ 403   4                      __tk_scan();
+ 404   4                      KeyOnOutput = __tk_key_flag;
+ 405   4      
+ 406   4                      if (cnt >= 87) // 原本是填90的，但是软件延时有误差，这里只能慢慢调试
+ 407   4                      {
+ 408   5                          cnt = TK_LONG_KEY_TIME;
+ 409   5      #if USE_MY_DEBUG
+ 410   5                          printf("k4 continue press\n");
+ 411   5      #endif
+ 412   5                          send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY4);
+ 413   5                      }
+ 414   4                  }
+ 415   3      
+ 416   3                  // display_data ^= 0x0800; // 对应的LED状态取反，后面会调用led_display()刷新
+ 417   3                  // led_display();          // LED状态更新显示
+ 418   3              }
+ 419   2              else if (TK_CH15_VALIB == KeyOnOutput)
+ 420   2              {
+ 421   3                  // 如果KEY5被触摸
+ 422   3                  if (cnt >= TK_LONG_KEY_TIME && cnt < 90)
+ 423   3                  {
+C51 COMPILER V9.60.7.0   TK_USER                                                           11/11/2024 17:28:53 PAGE 8   
 
- 422   4                      __tk_scan();
- 423   4                      KeyOnOutput = __tk_key_flag;
- 424   4      
- 425   4                      if (cnt >= 87) // 原本是填90的，但是软件延时有误差，这里只能慢慢调试
- 426   4                      {
- 427   5                          cnt = TK_LONG_KEY_TIME;
- 428   5                          // send_status_keyval(KEY_PRESS_CONTINUE, KEY_TK1);
- 429   5                      }
+ 424   4                      // display_data ^= 0x0800; // 对应的LED状态取反，后面会调用led_display()刷新
+ 425   4                      // led_display();          // LED状态更新显示
+ 426   4      #if USE_MY_DEBUG
+ 427   4                      printf("k5 long press\n");
+ 428   4      #endif
+ 429   4                      send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY5);
  430   4                  }
- 431   3              }
- 432   2              else if (TK_CH3_VALIB == KeyOnOutput)
- 433   2              {
- 434   3                  // 如果KEY2被触摸
- 435   3                  if (cnt >= TK_LONG_KEY_TIME && cnt < 90)
- 436   3                  {
- 437   4                      // send_status_keyval(KEY_PRESS_LONG, KEY_TK2);
- 438   4                  }
- 439   3      
- 440   3                  // 若还不松开手，则每隔150ms发送一次带有持续状态信息的键值信号
- 441   3                  while (0 != KeyOnOutput)
- 442   3                  {
- 443   4                      delay_ms(10);
- 444   4                      cnt++;
- 445   4                      __tk_scan();
- 446   4                      KeyOnOutput = __tk_key_flag;
- 447   4      
- 448   4                      if (cnt >= 87) // 原本是填90的，但是软件延时有误差，这里只能慢慢调试
- 449   4                      {
- 450   5                          cnt = TK_LONG_KEY_TIME;
- 451   5                          // send_status_keyval(KEY_PRESS_CONTINUE, KEY_TK2);
- 452   5                      }
- 453   4                  }
- 454   3      
- 455   3                  // display_data ^= 0x0200; // 对应的LED状态取反，后面会调用led_display()刷新
- 456   3                  // led_display();          // LED状态更新显示
- 457   3              }
- 458   2              else if (TK_CH2_VALIB == KeyOnOutput)
- 459   2              {
- 460   3                  // 如果KEY3被触摸
- 461   3                  if (cnt >= TK_LONG_KEY_TIME && cnt < 90)
- 462   3                  {
- 463   4                      // display_data ^= 0x0400; // 对应的LED状态取反，后面会调用led_display()刷新
- 464   4                      // led_display();          // LED状态更新显示
- 465   4                      // send_status_keyval(KEY_PRESS_LONG, KEY_TK3);
- 466   4                  }
- 467   3      
- 468   3                  // 若还不松开手，则每隔150ms发送一次带有持续状态信息的键值信号
- 469   3                  while (0 != KeyOnOutput)
- 470   3                  {
- 471   4                      delay_ms(10);
- 472   4                      cnt++;
- 473   4                      __tk_scan();
- 474   4                      KeyOnOutput = __tk_key_flag;
- 475   4      
- 476   4                      if (cnt >= 87) // 原本是填90的，但是软件延时有误差，这里只能慢慢调试
- 477   4                      {
- 478   5                          cnt = TK_LONG_KEY_TIME;
- 479   5                          // send_status_keyval(KEY_PRESS_CONTINUE, KEY_TK3);
- 480   5                      }
- 481   4                  }
- 482   3      
- 483   3                  // display_data ^= 0x0400; // 对应的LED状态取反，后面会调用led_display()刷新
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/09/2024 16:51:57 PAGE 9   
+ 431   3      
+ 432   3                  // 若还不松开手，则每隔150ms发送一次带有持续状态信息的键值信号
+ 433   3                  while (0 != KeyOnOutput)
+ 434   3                  {
+ 435   4                      delay_ms(10);
+ 436   4                      cnt++;
+ 437   4                      __tk_scan();
+ 438   4                      KeyOnOutput = __tk_key_flag;
+ 439   4      
+ 440   4                      if (cnt >= 87) // 原本是填90的，但是软件延时有误差，这里只能慢慢调试
+ 441   4                      {
+ 442   5                          cnt = TK_LONG_KEY_TIME;
+ 443   5      #if USE_MY_DEBUG
+ 444   5                          printf("k5 continue press\n");
+ 445   5      #endif
+ 446   5                          send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY5);
+ 447   5                      }
+ 448   4                  }
+ 449   3      
+ 450   3                  // display_data ^= 0x0800; // 对应的LED状态取反，后面会调用led_display()刷新
+ 451   3                  // led_display();          // LED状态更新显示
+ 452   3              }
+ 453   2          }
+ 454   1          else if (1 == long_touch_flag && 0 == KeyOnOutput)
+ 455   1          {
+ 456   2              // 如果之前是长按，现在却松开了按键
+ 457   2              switch (KeyOld)
+ 458   2              {
+ 459   3              case TK_CH24_VALIB:
+ 460   3      #if USE_MY_DEBUG
+ 461   3                  printf("k1 long press loose\n");
+ 462   3      #endif
+ 463   3                  send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY1);
+ 464   3                  break;
+ 465   3      
+ 466   3              case TK_CH25_VALIB:
+ 467   3      #if USE_MY_DEBUG
+ 468   3                  printf("k2 long press loose\n");
+ 469   3      #endif
+ 470   3                  send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY2);
+ 471   3                  break;
+ 472   3      
+ 473   3              case TK_CH23_VALIB:
+ 474   3      #if USE_MY_DEBUG
+ 475   3                  printf("k3 long press loose\n");
+ 476   3      #endif
+ 477   3                  send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY3);
+ 478   3                  break;
+ 479   3      
+ 480   3              case TK_CH17_VALIB:
+ 481   3      #if USE_MY_DEBUG
+ 482   3                  printf("k4 long press loose\n");
+ 483   3      #endif
+ 484   3                  send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY4);
+ 485   3                  break;
+C51 COMPILER V9.60.7.0   TK_USER                                                           11/11/2024 17:28:53 PAGE 9   
 
- 484   3                  // led_display();          // LED状态更新显示
- 485   3              }
- 486   2              else if (TK_CH0_VALIB == KeyOnOutput)
- 487   2              {
- 488   3                  // 如果KEY4被触摸
- 489   3                  if (cnt >= TK_LONG_KEY_TIME && cnt < 90)
- 490   3                  {
- 491   4                      // display_data ^= 0x0800; // 对应的LED状态取反，后面会调用led_display()刷新
- 492   4                      // led_display();          // LED状态更新显示
- 493   4                      // send_status_keyval(KEY_PRESS_LONG, KEY_TK4);
- 494   4                  }
- 495   3      
- 496   3                  // 若还不松开手，则每隔150ms发送一次带有持续状态信息的键值信号
- 497   3                  while (0 != KeyOnOutput)
- 498   3                  {
- 499   4                      delay_ms(10);
- 500   4                      cnt++;
- 501   4                      __tk_scan();
- 502   4                      KeyOnOutput = __tk_key_flag;
- 503   4      
- 504   4                      if (cnt >= 87) // 原本是填90的，但是软件延时有误差，这里只能慢慢调试
- 505   4                      {
- 506   5                          cnt = TK_LONG_KEY_TIME;
- 507   5                          // send_status_keyval(KEY_PRESS_CONTINUE, KEY_TK4);
- 508   5                      }
- 509   4                  }
- 510   3      
- 511   3                  // display_data ^= 0x0800; // 对应的LED状态取反，后面会调用led_display()刷新
- 512   3                  // led_display();          // LED状态更新显示
- 513   3              }
- 514   2              else if (TK_CH9_VALIB == KeyOnOutput)
- 515   2              {
- 516   3                  // 如果KEY5被触摸
- 517   3                  if (cnt >= TK_LONG_KEY_TIME && cnt < 90)
- 518   3                  {
- 519   4                      // display_data ^= 0x0800; // 对应的LED状态取反，后面会调用led_display()刷新
- 520   4                      // led_display();          // LED状态更新显示
- 521   4                      // send_status_keyval(KEY_PRESS_LONG, KEY_TK5);
- 522   4                  }
- 523   3      
- 524   3                  // 若还不松开手，则每隔150ms发送一次带有持续状态信息的键值信号
- 525   3                  while (0 != KeyOnOutput)
- 526   3                  {
- 527   4                      delay_ms(10);
- 528   4                      cnt++;
- 529   4                      __tk_scan();
- 530   4                      KeyOnOutput = __tk_key_flag;
- 531   4      
- 532   4                      if (cnt >= 87) // 原本是填90的，但是软件延时有误差，这里只能慢慢调试
- 533   4                      {
- 534   5                          cnt = TK_LONG_KEY_TIME;
- 535   5                          // send_status_keyval(KEY_PRESS_CONTINUE, KEY_TK5);
- 536   5                      }
- 537   4                  }
- 538   3      
- 539   3                  // display_data ^= 0x0800; // 对应的LED状态取反，后面会调用led_display()刷新
- 540   3                  // led_display();          // LED状态更新显示
- 541   3              }
- 542   2      
- 543   2              else if (TK_CH10_VALIB == KeyOnOutput)
- 544   2              {
- 545   3                  // 如果KEY6被触摸
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/09/2024 16:51:57 PAGE 10  
-
- 546   3                  if (cnt >= TK_LONG_KEY_TIME && cnt < 90)
- 547   3                  {
- 548   4                      // display_data ^= 0x0800; // 对应的LED状态取反，后面会调用led_display()刷新
- 549   4                      // led_display();          // LED状态更新显示
- 550   4                      // send_status_keyval(KEY_PRESS_LONG, KEY_TK6);
- 551   4                  }
- 552   3      
- 553   3                  // 若还不松开手，则每隔150ms发送一次带有持续状态信息的键值信号
- 554   3                  while (0 != KeyOnOutput)
- 555   3                  {
- 556   4                      delay_ms(10);
- 557   4                      cnt++;
- 558   4                      __tk_scan();
- 559   4                      KeyOnOutput = __tk_key_flag;
- 560   4      
- 561   4                      if (cnt >= 87) // 原本是填90的，但是软件延时有误差，这里只能慢慢调试
- 562   4                      {
- 563   5                          cnt = TK_LONG_KEY_TIME;
- 564   5                          // send_status_keyval(KEY_PRESS_CONTINUE, KEY_TK6);
- 565   5                      }
- 566   4                  }
- 567   3      
- 568   3                  // display_data ^= 0x0800; // 对应的LED状态取反，后面会调用led_display()刷新
- 569   3                  // led_display();          // LED状态更新显示
- 570   3              }
- 571   2          }
- 572   1          else if (1 == long_touch_flag && 0 == KeyOnOutput)
- 573   1          {
- 574   2              // 如果之前是长按，现在却松开了按键
- 575   2              switch (KeyOld)
- 576   2              {
- 577   3              case TK_CH24_VALIB:
- 578   3                  // send_status_keyval(KEY_PRESS_LOOSE, KEY_TK1);
- 579   3                  break;
- 580   3      
- 581   3              case TK_CH3_VALIB:
- 582   3                  // send_status_keyval(KEY_PRESS_LOOSE, KEY_TK2);
- 583   3                  break;
- 584   3      
- 585   3              case TK_CH2_VALIB:
- 586   3                  // send_status_keyval(KEY_PRESS_LOOSE, KEY_TK3);
- 587   3                  break;
- 588   3      
- 589   3              case TK_CH0_VALIB:
- 590   3                  // send_status_keyval(KEY_PRESS_LOOSE, KEY_TK4);
- 591   3                  break;
- 592   3      
- 593   3              case TK_CH9_VALIB:
- 594   3                  // send_status_keyval(KEY_PRESS_LOOSE, KEY_TK5);
- 595   3                  break;
- 596   3      
- 597   3              case TK_CH10_VALIB:
- 598   3                  // send_status_keyval(KEY_PRESS_LOOSE, KEY_TK6);
- 599   3                  break;
- 600   3              }
- 601   2      
- 602   2              long_touch_flag = 0; // 清除标志位
- 603   2              cnt = 0;
- 604   2              KeyOld = 0;
- 605   2          }
- 606   1      
- 607   1      #if 0
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/09/2024 16:51:57 PAGE 11  
-
+ 486   3      
+ 487   3              case TK_CH15_VALIB:
+ 488   3      #if USE_MY_DEBUG
+ 489   3                  printf("k5 long press loose\n");
+ 490   3      #endif
+ 491   3                  send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY5);
+ 492   3                  break;
+ 493   3              }
+ 494   2      
+ 495   2              long_touch_flag = 0; // 清除标志位
+ 496   2              cnt = 0;
+ 497   2              KeyOld = 0;
+ 498   2          }
+ 499   1      
+ 500   1      #if 0
                   if (1 == __tk_long_key_flag) // 如果长按按键（这个功能测试发现不行，不能用）
                   {
                       __tk_long_key_flag = 0;
@@ -649,15 +536,15 @@ line level    source
                       P11 = 0;
                   }
               #endif
- 617   1      }
- 618          
- 619          /*************************** (C) COPYRIGHT 2022 TAIXIN-IC ***** END OF FILE *****/
+ 510   1      }
+ 511          
+ 512          /*************************** (C) COPYRIGHT 2022 TAIXIN-IC ***** END OF FILE *****/
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   2914    ----
-   CONSTANT SIZE    =   ----    ----
-   XDATA SIZE       =     13      10
+   CODE SIZE        =   2884    ----
+   CONSTANT SIZE    =    410    ----
+   XDATA SIZE       =     11      10
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----    ----
    IDATA SIZE       =   ----    ----

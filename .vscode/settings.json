@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "key_conversion.h": "c",
-        "aip650.h": "c"
+        "aip650.h": "c",
+        "send_key.h": "c"
     }
 }

@@ -2,33 +2,20 @@
 #define __AIP650_H
 
 #include "include.h" // 包含芯片官方提供的头文件
-#include "my_config.h"
+#include "my_config.h" 
+ 
+extern u8 aip650_show_buff[3]; // aip650显示缓冲区（显存）
 
-#define AIP650E_SIZE 4
- 
-struct _650e_drv_
-{
-    // 用户数据
-    u8 temp;       // 数码管显示  50 60 90 120
- 
-    u8 _buf[AIP650E_SIZE]; // 数据存储
-};
- 
-extern struct _650e_drv_ sg_650e_drv;
-#define GET_650E() (&sg_650e_drv)
- 
-extern void aip650e_init(struct _650e_drv_ *drv);           // 初始化
-extern void aip650e_display_update(struct _650e_drv_ *drv); // 屏显数据更新
-extern void aip650e_update(struct _650e_drv_ *drv);         // 执行刷新
- 
-/*测试模式定义 -- 如需开启测试模式, 请打开下面的宏定义*/
-#define AIP650_TEST_MODE
-#ifdef AIP650_TEST_MODE
-extern void test_aip650e(void);
-#endif
- 
+extern const u8 aip650_data[];
 
 extern void aip650_config(void);
-extern  u8 iic_master_tx(u8 iic_data, u8 flag);
+
+// extern void aip650_show_buff_update(u8 *buff); // 更新aip650的显存
+extern void aip650_show_refresh(void);      // 刷新aip650要显示的内容(将aip650显存的内容更新到外设上)
+
+extern void aip650_show_data(u8 num_bit1, u8 num_bit0);// 向aip650的显存写入要显示的数字
+extern void aip650_show_point(u8 locate); // 向aip650显存写入要显示的小数点
+extern void aip650_show_led_of_touch(u8 led_data); // 向aip650显存写入要点亮的触摸按键的对应的LED
 
 #endif
+

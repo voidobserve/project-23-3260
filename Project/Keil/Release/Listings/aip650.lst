@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   AIP650                                                            11/09/2024 16:51:57 PAGE 1   
+C51 COMPILER V9.60.7.0   AIP650                                                            11/11/2024 17:38:10 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE AIP650
@@ -12,333 +12,296 @@ line level    source
    1          #include "aip650.h"
    2          #include <string.h>
    3          
-   4          void aip650_config(void)
-   5          {
-   6   1          // 14脚-P16-IIC_DATA
-   7   1          // 15脚-P15-IIC_CLK
-   8   1          P1_MD1 &= ~((GPIO_P15_MODE_SEL(0x03)) | (GPIO_P16_MODE_SEL(0x03))); //
-   9   1          P1_MD1 |= ((GPIO_P15_MODE_SEL(0x02)) | (GPIO_P16_MODE_SEL(0x02)));  // 配置为数字复用模式
-  10   1          P1_PU |= (GPIO_P15_PULL_UP(0x01) | GPIO_P16_PULL_UP(0x01));         // 上拉
-  11   1          P1_ODN |= (GPIO_P15_ODN_EN(0x01) | GPIO_P16_ODN_EN(0x01));          // 开漏
-  12   1          P1_AF0 |= (GPIO_P15_FUNC_SEL(0x01) | GPIO_P16_FUNC_SEL(0x01));      // P15作为IIC_CLK, P16作为IIC_
+   4          // 0 1 2 3 4 5 6 7 8 9 NULL -
+   5          // u8 leddata[] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F, 0x00, 0x40};
+   6          
+   7          /*
+   8              //[0]-- com1显示--连接到第二个数码管(从左往右数)
+   9              //[1]-- com2显示--连接到按键对应的LED
+  10              //[2]-- com3显示--连接到第一个数码管(从左往右数)
+  11          */
+  12          u8 aip650_show_buff[3] = {0}; // aip650显示缓冲区（显存）
+  13          
+  14          // 存放要显示的内容
+  15          const u8 aip650_data_map_buf[] = {
+  16              0xE7, // 0
+  17              0x81, // 1
+  18              0x75, // 2
+  19              0xB5, // 3
+  20              0x93, // 4
+  21              0xB6, // 5
+  22              0xF6, // 6
+  23              0x85, // 7
+  24              0xF7, // 8
+  25              0xB7, // 9
+  26          
+  27              0x66, // 大写 "C"
+  28              0xF1, // 小写 "d"
+  29              0x56, // 大写 "F"
+  30              0xD3, // 大写 "H"
+  31              0x62, // 大写 "L"
+  32              0xC7, // 小写 "n"
+  33          };
+  34          
+  35          /*指令集*/
+  36          
+  37          // 4801--系统使能，8段显示，8级亮度
+  38          #define SYS_CMD 0x4801
+  39          
+  40          void aip650_config(void)
+  41          {
+  42   1          // 14脚-P16-IIC_DATA
+  43   1          // 15脚-P15-IIC_CLK
+  44   1          P1_MD1 &= ~((GPIO_P15_MODE_SEL(0x03)) | (GPIO_P16_MODE_SEL(0x03))); //
+  45   1          P1_MD1 |= ((GPIO_P15_MODE_SEL(0x02)) | (GPIO_P16_MODE_SEL(0x02)));  // 配置为数字复用模式
+  46   1          P1_PU |= (GPIO_P15_PULL_UP(0x01) | GPIO_P16_PULL_UP(0x01));         // 上拉
+  47   1          P1_ODN |= (GPIO_P15_ODN_EN(0x01) | GPIO_P16_ODN_EN(0x01));          // 开漏
+  48   1          P1_AF0 |= (GPIO_P15_FUNC_SEL(0x01) | GPIO_P16_FUNC_SEL(0x01));      // P15作为IIC_CLK, P16作为IIC_
              -DATA
-  13   1      
-  14   1          I2C_CON = I2C_CR_SEL(0x02); // 配置波特率，可根据表格自行选择
-  15   1          I2C_CON |= I2C_EN(0x1);     // 使能模块
-  16   1      }
-  17          
-  18          /**
-  19           * @brief  IIC sends 1 byte data function
-  20           * @param  iic_data: IIC data
-  21           * @param  flag: 0: None  1:send start   2:send stop
-  22           * @retval Returns 1 and receives an ACK
-  23           */
-  24          u8 iic_master_tx(u8 iic_data, u8 flag)
-  25          {
-  26   1      #define START_FLAG (1)
-  27   1      #define STOP_FLAG (2)
-  28   1      
-  29   1          u8 ack_flag = 0;
-  30   1      
-  31   1          if (flag == START_FLAG)
-  32   1          {
-  33   2              // 配置发送起始位
-  34   2              I2C_CON |= (I2C_START_BIT(0x1) | I2C_SI_CLEAR(0x1));
-  35   2              // 等待 SI 置 1， 起始位发送成功时会置 1， 其它情况也可能会置 1， 需要�
+  49   1      
+  50   1          I2C_CON = I2C_CR_SEL(0x02); // 配置波特率，可根据表格自行选择
+  51   1          I2C_CON |= I2C_EN(0x1);     // 使能模块
+  52   1      
+C51 COMPILER V9.60.7.0   AIP650                                                            11/11/2024 17:38:10 PAGE 2   
+
+  53   1          // memset(sg_650e_drv._buf, 0x00, AIP650E_SIZE);
+  54   1          // aip650e_update(&sg_650e_drv); // 上电第一次清空显示
+  55   1      }
+  56          
+  57          /**
+  58           * @brief  IIC sends 1 byte data function
+  59           * @param  iic_data: IIC data
+  60           * @param  flag: 0: None  1:send start   2:send stop
+  61           * @retval Returns 1 and receives an ACK
+  62           */
+  63          static u8 iic_master_tx(u8 iic_data, u8 flag)
+  64          {
+  65   1      #define START_FLAG (1)
+  66   1      #define STOP_FLAG (2)
+  67   1      
+  68   1          u8 ack_flag = 0;
+  69   1      
+  70   1          if (flag == START_FLAG)
+  71   1          {
+  72   2              // 配置发送起始位
+  73   2              I2C_CON |= (I2C_START_BIT(0x1) | I2C_SI_CLEAR(0x1));
+  74   2              // 等待 SI 置 1， 起始位发送成功时会置 1， 其它情况也可能会置 1， 需要�
              -��意
-  36   2              while (!(I2C_STA & I2C_SI_STA(0x1)))
-  37   2                  ;
-  38   2              I2C_CON &= ~I2C_START_BIT(0x1);
-  39   2      
-  40   2              // 判断模块状态
-  41   2              if (!(((I2C_STA & I2C_STA_FLAG(0x1F)) == 0x08) ||
-  42   2                    ((I2C_STA & I2C_STA_FLAG(0x1F)) == 0x10)))
-  43   2              {
-  44   3                  return 0;
-  45   3              }
-  46   2          }
-  47   1      
-  48   1          // 写入目标从机地址
-  49   1          I2C_DATA = iic_data;
-  50   1          // 等待地址发送完成
-  51   1          while (!(I2C_STA & I2C_SI_STA(0x1)))
-C51 COMPILER V9.60.7.0   AIP650                                                            11/09/2024 16:51:57 PAGE 2   
-
-  52   1              ;
-  53   1      
-  54   1          // 判断是否收到 ACK
-  55   1          if (((I2C_STA & I2C_STA_FLAG(0x1F)) == 0x18) ||
-  56   1              ((I2C_STA & I2C_STA_FLAG(0x1F)) == 0x28) ||
-  57   1              ((I2C_STA & I2C_STA_FLAG(0x1F)) == 0x40))
-  58   1          {
-  59   2              ack_flag = 1;
-  60   2          }
-  61   1          else
-  62   1          {
-  63   2              ack_flag = 0;
-  64   2          }
-  65   1      
-  66   1          if (flag == STOP_FLAG)
-  67   1          {
-  68   2              // 配置发送停止位
-  69   2              I2C_CON |= (I2C_STOP_BIT(0x1) | I2C_SI_CLEAR(0x1));
-  70   2          }
-  71   1      
-  72   1          return ack_flag;
-  73   1      }
-  74          
-  75          struct _650e_drv_ sg_650e_drv;
-  76          
-  77          // 0 1 2 3 4 5 6 7 8 9 NULL -
-  78          u8 leddata[] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F, 0x00, 0x40};
-  79          
-  80          /*指令集*/
-  81          #define SYS_CMD 0x4801 // 48是系统指令，设置系统参数        ；01是显示指令，设置为工作模
-             -式，8段显示，8级亮度，显示开
-  82          
-  83          void aip650e_init(struct _650e_drv_ *drv)
-  84          {
-  85   1          memset(drv->_buf, 0x00, AIP650E_SIZE);
-  86   1          aip650e_update(drv); // 上电第一次清空显示
-  87   1      }
-  88          
-  89          /*延时最小单元*/
-  90          // #define TIME_UINT 1
-  91          
-  92          // static void delay_us(uint32_t nus)
-  93          // {
-  94          //      uint32_t Delay = nus;
-  95          //      do
-  96          //      {
-  97          //              __NOP();
-  98          //      } while (Delay--);
-  99          // }
- 100          
- 101          // IIC开始信号
- 102          // static void start_i2c(void)
- 103          // {
- 104          //      SDA_SET;
- 105          //      delay_us(TIME_UINT);
- 106          //      SCL_SET;
- 107          //      delay_us(TIME_UINT);
- 108          //      SDA_RESET;
- 109          //      delay_us(TIME_UINT);
- 110          //      SCL_RESET;
- 111          //      delay_us(TIME_UINT);
- 112          // }
-C51 COMPILER V9.60.7.0   AIP650                                                            11/09/2024 16:51:57 PAGE 3   
-
+  75   2              while (!(I2C_STA & I2C_SI_STA(0x1)))
+  76   2                  ;
+  77   2              I2C_CON &= ~I2C_START_BIT(0x1);
+  78   2      
+  79   2              // 判断模块状态
+  80   2              if (!(((I2C_STA & I2C_STA_FLAG(0x1F)) == 0x08) ||
+  81   2                    ((I2C_STA & I2C_STA_FLAG(0x1F)) == 0x10)))
+  82   2              {
+  83   3                  return 0;
+  84   3              }
+  85   2          }
+  86   1      
+  87   1          // 写入目标从机地址
+  88   1          I2C_DATA = iic_data;
+  89   1          // 等待地址发送完成
+  90   1          while (!(I2C_STA & I2C_SI_STA(0x1)))
+  91   1              ;
+  92   1      
+  93   1          // 判断是否收到 ACK
+  94   1          if (((I2C_STA & I2C_STA_FLAG(0x1F)) == 0x18) ||
+  95   1              ((I2C_STA & I2C_STA_FLAG(0x1F)) == 0x28) ||
+  96   1              ((I2C_STA & I2C_STA_FLAG(0x1F)) == 0x40))
+  97   1          {
+  98   2              ack_flag = 1;
+  99   2          }
+ 100   1          else
+ 101   1          {
+ 102   2              ack_flag = 0;
+ 103   2          }
+ 104   1      
+ 105   1          if (flag == STOP_FLAG)
+ 106   1          {
+ 107   2              // 配置发送停止位
+ 108   2              I2C_CON |= (I2C_STOP_BIT(0x1) | I2C_SI_CLEAR(0x1));
+ 109   2          }
+ 110   1      
+ 111   1          return ack_flag;
+ 112   1      }
  113          
- 114          // static void stop_i2c(void)
- 115          //  IIC停止信号
- 116          //{
- 117          //      SCL_SET;
- 118          //      delay_us(TIME_UINT);
- 119          //      SDA_RESET;
- 120          //      delay_us(TIME_UINT);
- 121          //      SDA_SET;
- 122          //      delay_us(TIME_UINT);
- 123          //      SDA_RESET;
- 124          //      SCL_RESET;
- 125          //}
- 126          
- 127          // // 数据传输-传送一个字节, 先读高位
- 128          // static void send_byte(unsigned char dat)
- 129          // {
- 130          //      unsigned char i;
- 131          //      for (i = 0; i < 8; i++)
- 132          //      {
- 133          //              SCL_RESET;
- 134          //              if (dat & 0x80)
- 135          //              {
- 136          //                      SDA_SET;
- 137          //              }
- 138          //              else
- 139          //              {
- 140          //                      SDA_RESET;
- 141          //              }
- 142          //              SCL_SET;
- 143          //              dat = dat << 1;
- 144          //      }
- 145          //      SCL_RESET;
- 146          //      delay_us(TIME_UINT);
- 147          //      SDA_RESET; // ACK信号
- 148          //      delay_us(TIME_UINT);
- 149          //      SCL_SET;
- 150          //      delay_us(TIME_UINT);
- 151          //      delay_us(TIME_UINT);
- 152          //      SCL_RESET;
- 153          //      delay_us(TIME_UINT);
- 154          // }
- 155          
- 156          static void writeCMD(u16 cmd)
- 157          {
- 158   1          // start_i2c();
- 159   1          // send_byte(cmd >> 8);
- 160   1          // send_byte(cmd & 0xff);
- 161   1          // wait_ack_i2c();
- 162   1      
- 163   1          iic_master_tx(cmd >> 8, 1);
- 164   1          iic_master_tx(cmd & 0xFF, 2);
- 165   1      }
- 166          
- 167          // /// @brief 显示数据更新
- 168          // /// @param drv
- 169          
- 170          u8 test_i = 0;
- 171          u8 temp = 0;
- 172          void aip650e_display_update(struct _650e_drv_ *drv)
- 173          {
- 174   1          temp = 1;
-C51 COMPILER V9.60.7.0   AIP650                                                            11/09/2024 16:51:57 PAGE 4   
+C51 COMPILER V9.60.7.0   AIP650                                                            11/11/2024 17:38:10 PAGE 3   
 
- 175   1          // 温度显示
- 176   1          switch (temp)
- 177   1          {
- 178   2          case 0:
- 179   2              // 温度显示---
- 180   2              drv->_buf[0] = (drv->_buf[0] & ~0x7f) | leddata[11]; // -
- 181   2              drv->_buf[1] = (drv->_buf[1] & ~0x7f) | leddata[11];
- 182   2              drv->_buf[2] = (drv->_buf[2] & ~0x7f) | leddata[11];
- 183   2              break;
- 184   2          case 1:
- 185   2              // 温度显示60
- 186   2              drv->_buf[0] = (drv->_buf[0] & ~0x7f) | leddata[10]; // null
- 187   2              drv->_buf[1] = (drv->_buf[1] & ~0x7f) | leddata[6];
- 188   2              drv->_buf[2] = (drv->_buf[2] & ~0x7f) | leddata[0];
- 189   2              break;
- 190   2          case 2:
- 191   2              // 温度显示90
- 192   2              drv->_buf[0] = (drv->_buf[0] & ~0x7f) | leddata[10]; // null
- 193   2              drv->_buf[1] = (drv->_buf[1] & ~0x7f) | leddata[9];
- 194   2              drv->_buf[2] = (drv->_buf[2] & ~0x7f) | leddata[0];
- 195   2              break;
- 196   2          case 3:
- 197   2              // 温度显示120
- 198   2              drv->_buf[0] = (drv->_buf[0] & ~0x7f) | leddata[1];
- 199   2              drv->_buf[1] = (drv->_buf[1] & ~0x7f) | leddata[2];
- 200   2              drv->_buf[2] = (drv->_buf[2] & ~0x7f) | leddata[0];
- 201   2              break;
- 202   2          default:
- 203   2              break;
- 204   2          }
- 205   1      
- 206   1      #ifdef AIP650_TEST_MODE
- 207   1          drv->_buf[0] = (drv->_buf[0] & ~0x7f) | leddata[test_i];
- 208   1          drv->_buf[1] = (drv->_buf[1] & ~0x7f) | leddata[test_i];
- 209   1          drv->_buf[2] = (drv->_buf[2] & ~0x7f) | leddata[test_i];
- 210   1      
- 211   1          test_i++;
- 212   1          if (test_i > 9)
- 213   1              test_i = 0;
- 214   1      #endif
- 215   1      }
- 216          
- 217          /// @brief 刷新屏显
- 218          /// @param drv
- 219          void aip650e_update(struct _650e_drv_ *drv)
- 220          {
- 221   1          writeCMD(SYS_CMD); // 开显示，8级显示(0x4801);睡眠使能。时钟停振(0x4804)
- 222   1      
- 223   1          writeCMD(0x6800 | drv->_buf[0]); // com0显示
- 224   1          writeCMD(0x6A00 | drv->_buf[1]); // com1显示
- 225   1          writeCMD(0x6C00 | drv->_buf[2]); // com2显示
- 226   1          writeCMD(0x6E00 | drv->_buf[3]); // com3显示
- 227   1      }
- 228          
- 229          #ifdef AIP650_TEST_MODE
- 230          static void test_display(u8 data1, u8 data2, u8 data3, u8 data4)
- 231          {
- 232   1          writeCMD(SYS_CMD); // 开显示，8级显示(0x4801);睡眠使能。时钟停振(0x4804)
- 233   1      
- 234   1          writeCMD(0x6800 | data1); // com0 显示
- 235   1          writeCMD(0x6A00 | data3); // com1显示
- 236   1          writeCMD(0x6C00 | data2); // com2显示
-C51 COMPILER V9.60.7.0   AIP650                                                            11/09/2024 16:51:57 PAGE 5   
+ 114          static void aip650_write_cmd(u16 cmd) //
+ 115          {
+ 116   1          iic_master_tx(cmd >> 8, 1);
+ 117   1          iic_master_tx(cmd & 0xFF, 2);
+ 118   1      }
+ 119          
+ 120          // // 更新aip650的显存
+ 121          // void aip650_show_buff_update(u8 *buff)
+ 122          // {
+ 123          //     aip650_show_buff[0] = (aip650_show_buff[0] & ~0xFF) | buff[0];
+ 124          //     aip650_show_buff[1] = (aip650_show_buff[1] & ~0xFF) | buff[1];
+ 125          //     aip650_show_buff[2] = (aip650_show_buff[2] & ~0xFF) | buff[2];
+ 126          // }
+ 127          
+ 128          // 刷新aip650要显示的内容(将aip650显存的内容更新到外设上)
+ 129          void aip650_show_refresh(void)
+ 130          {
+ 131   1          aip650_write_cmd(SYS_CMD); // 开显示，8级显示(0x4801);睡眠使能。时钟停振(0x4804)
+ 132   1      
+ 133   1          // aip650_write_cmd(0x6800 | aip650_show_buff[0]); // com0显示--未连接任何硬件
+ 134   1          aip650_write_cmd(0x6A00 | aip650_show_buff[0]); // com1显示--连接到第二个数码管(从左往�
+             -�数)
+ 135   1          aip650_write_cmd(0x6C00 | aip650_show_buff[1]); // com2显示--连接到按键对应的LED
+ 136   1          aip650_write_cmd(0x6E00 | aip650_show_buff[2]); // com3显示--连接到第一个数码管(从左往�
+             -�数)
+ 137   1      }
+ 138          
+ 139          // 向aip650的显存写入要显示的数字,
+ 140          // 如果传参 == 0xFF，则清空要显示的数字，不影响小数点的显示
+ 141          // 如果传入了超出范围的参数，整个aip650显存将被清空
+ 142          void aip650_show_data(u8 data_bit1, u8 data_bit0)
+ 143          {
+ 144   1          if ((0xFF != data_bit0 && data_bit0 > (sizeof(aip650_data_map_buf) - 1)) ||
+ 145   1              (0xFF != data_bit1 && data_bit1 > (sizeof(aip650_data_map_buf) - 1)))
+ 146   1          {
+ 147   2              // 数值超出了LED能够显示的范围，清空显示
+ 148   2              aip650_show_buff[2] = 0;
+ 149   2              aip650_show_buff[0] = 0;
+ 150   2              // aip650_show_refresh();
+ 151   2              return;
+ 152   2          }
+ 153   1      
+ 154   1          if (0xFF == data_bit0)
+ 155   1          {
+ 156   2              aip650_show_buff[0] &= ~0xF7;
+ 157   2          }
+ 158   1      
+ 159   1          if (0xFF == data_bit1)
+ 160   1          {
+ 161   2              aip650_show_buff[2] &= ~0xF7;
+ 162   2          }
+ 163   1      
+ 164   1          if (0xFF != data_bit0)
+ 165   1          {
+ 166   2              aip650_show_buff[0] = aip650_data_map_buf[data_bit0];
+ 167   2          }
+ 168   1      
+ 169   1          if (0xFF != data_bit1)
+ 170   1          {
+ 171   2              aip650_show_buff[2] = aip650_data_map_buf[data_bit1];
+ 172   2          }
+ 173   1      }
+C51 COMPILER V9.60.7.0   AIP650                                                            11/11/2024 17:38:10 PAGE 4   
 
- 237   1          writeCMD(0x6E00 | data4); // com3显示
- 238   1      }
- 239          
- 240          /// @brief 测试程序
- 241          /// @param
- 242          uint8 test_dat = 0x01;
- 243          void test_aip650e(void)
- 244          {
- 245   1          test_display(test_dat,
- 246   1                       test_dat,
- 247   1                       test_dat,
- 248   1                       test_dat);
- 249   1      
- 250   1          test_dat = test_dat << 1;
- 251   1      
- 252   1          if (test_dat == 0)
- 253   1          {
- 254   2              test_dat = 0x01;
- 255   2          }
- 256   1      }
- 257          #endif
- 258          
- 259          /**
- 260           * @brief  IIC receive 1 byte data function
- 261           * @param  ack_en: 0:Send NACK  1:Send ACK   2:Send stop
- 262           * @retval Returns data
- 263           */
- 264          // static u8 iic_master_rx(u8 flag)
- 265          // {
- 266          // #define NACK_FLAG (0)
- 267          // #define ACK_FLAG (1)
- 268          // #define STOP_FLAG (2)
- 269          
- 270          //     u8 ack_flag = 0;
- 271          //     u8 iic_data = 0;
- 272          
- 273          //     if (flag == ACK_FLAG)
- 274          //     {
- 275          //         // 接收完1byte数据发送ACK
- 276          //         I2C_CON |= I2C_ACK_NACK_BIT(0x1);
- 277          //         if (I2C_STA & I2C_SI_STA(0x1))
- 278          //         {
- 279          //             I2C_CON |= I2C_SI_CLEAR(0x1);
- 280          //         }
- 281          //     }
- 282          
- 283          //     // 等待接收完成
- 284          //     while (!(I2C_STA & I2C_SI_STA(0x1)))
- 285          //         ;
- 286          
- 287          //     if (flag == NACK_FLAG)
- 288          //     {
- 289          //         // 接收完1byte数据发送NACK
- 290          //         I2C_CON &= ~I2C_ACK_NACK_BIT(0x1);
- 291          //     }
- 292          //     if (flag == STOP_FLAG)
- 293          //     {
- 294          //         // 配置发送停止位
- 295          //         I2C_CON |= (I2C_STOP_BIT(0x1) | I2C_SI_CLEAR(0x1));
- 296          //     }
- 297          
- 298          //     // 开发时此处的处理可注释掉
-C51 COMPILER V9.60.7.0   AIP650                                                            11/09/2024 16:51:57 PAGE 6   
+ 174          
+ 175          // 向aip650显存写入要显示的小数点
+ 176          // 参数-locate， 0--不显示小数点，
+ 177          //              1--显示第一个小数点（从左往右数）,
+ 178          //              2--显示第二个小数点(从左往右数),
+ 179          //              3--两个小数点都显示
+ 180          //             如果传入了超出范围的参数，整个aip650显存将被清空
+ 181          void aip650_show_point(u8 locate)
+ 182          {
+ 183   1          if (0 == locate)
+ 184   1          {
+ 185   2              aip650_show_buff[2] &= ~0x08;
+ 186   2              aip650_show_buff[0] &= ~0x08;
+ 187   2          }
+ 188   1          else if (1 == locate)
+ 189   1          {
+ 190   2              aip650_show_buff[2] |= 0x08;
+ 191   2              aip650_show_buff[0] &= ~0x08;
+ 192   2          }
+ 193   1          else if (2 == locate)
+ 194   1          {
+ 195   2              aip650_show_buff[2] &= ~0x08;
+ 196   2              aip650_show_buff[0] |= 0x08;
+ 197   2          }
+ 198   1          else if (3 == locate)
+ 199   1          {
+ 200   2              aip650_show_buff[2] |= 0x08;
+ 201   2              aip650_show_buff[0] |= 0x08;
+ 202   2          }
+ 203   1          else
+ 204   1          {
+ 205   2              aip650_show_buff[0] = 0;
+ 206   2              aip650_show_buff[1] = 0;
+ 207   2              aip650_show_buff[2] = 0;
+ 208   2          }
+ 209   1      
+ 210   1          // aip650_show_refresh();
+ 211   1      }
+ 212          
+ 213          // 向aip650显存写入要点亮的触摸按键的对应的LED
+ 214          // 参数：led_data, 范围：0x00~0x1F,第0bit表示按键K1对应的LED的状态，
+ 215          //                                第4bit表示按键K5对应的LED的状态，
+ 216          //                                0表示熄灭，1表示点亮
+ 217          //      如果传入了超出范围的参数，整个aip650显存将被清空
+ 218          void aip650_show_led_of_touch(u8 led_data)
+ 219          {   
+ 220   1          aip650_show_buff[1] = 0; // 清空原来的数据
+ 221   1      
+ 222   1          if (led_data > 0x1F)
+ 223   1          {
+ 224   2              // 传入的数据格式有误，清空显示
+ 225   2              aip650_show_buff[0] = 0;
+ 226   2              // aip650_show_buff[1] = 0;
+ 227   2              aip650_show_buff[2] = 0;
+ 228   2              return;
+ 229   2          }
+ 230   1      
+ 231   1          if (led_data & 0x01) // 按键K1
+ 232   1          {
+ 233   2              aip650_show_buff[1] |= 0x04;
+ 234   2          }
+ 235   1          else if ((led_data & 0x01) == 0)
+C51 COMPILER V9.60.7.0   AIP650                                                            11/11/2024 17:38:10 PAGE 5   
 
- 299          //     if ((I2C_STA & I2C_STA_FLAG(0x1F)) == 0x50)
- 300          //     {
- 301          //         // 成功发送 ACK
- 302          //         ack_flag = 1;
- 303          //     }
- 304          //     else if ((I2C_STA & I2C_STA_FLAG(0x1F)) == 0x58)
- 305          //     {
- 306          //         // 成功发送 NACK
- 307          //         ack_flag = 0;
- 308          //     }
- 309          
- 310          //     return I2C_DATA;
- 311          // }
+ 236   1          {
+ 237   2              aip650_show_buff[1] &= ~0x04;
+ 238   2          }
+ 239   1      
+ 240   1          if ((led_data >> 1) & 0x01) // 按键K2
+ 241   1          {
+ 242   2              aip650_show_buff[1] |= 0x02;
+ 243   2          }
+ 244   1          else if (((led_data >> 1) & 0x01) == 0)
+ 245   1          {
+ 246   2              aip650_show_buff[1] &= ~0x02;
+ 247   2          }
+ 248   1      
+ 249   1          if ((led_data >> 2) & 0x01) // 按键K3
+ 250   1          {
+ 251   2              aip650_show_buff[1] |= 0x80;
+ 252   2          }
+ 253   1          else if (((led_data >> 2) & 0x01) == 0)
+ 254   1          {
+ 255   2              aip650_show_buff[1] &= ~0x80;
+ 256   2          }
+ 257   1      
+ 258   1          if ((led_data >> 3) & 0x01) // 按键K4
+ 259   1          {
+ 260   2              aip650_show_buff[1] |= 0x40;
+ 261   2          }
+ 262   1          else if (((led_data >> 3) & 0x01) == 0)
+ 263   1          {
+ 264   2              aip650_show_buff[1] &= ~0x40;
+ 265   2          }
+ 266   1      
+ 267   1          if ((led_data >> 4) & 0x01) // 按键K5
+ 268   1          {
+ 269   2              aip650_show_buff[1] |= 0x20;
+ 270   2          }
+ 271   1          else if (((led_data >> 4) & 0x01) == 0)
+ 272   1          {
+ 273   2              aip650_show_buff[1] &= ~0x20;
+ 274   2          }
+ 275   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    716    ----
+   CODE SIZE        =    498    ----
    CONSTANT SIZE    =   ----    ----
-   XDATA SIZE       =     20      10
+   XDATA SIZE       =     19    ----
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----    ----
    IDATA SIZE       =   ----    ----

@@ -18,13 +18,33 @@
 // #define TMR1_CNT_TIME           (1800 / 3)
 #define TMR1_CNT_TIME           305 // 305 * 0.65625 us 约等于 200 us
 
-extern volatile char send_keyval_flag; // 是否要发送键值的标志位，0--不发送，1--发送
+// 自定义触摸按键的键值
+enum
+{
+    TOUCH_KEY1 = 0x01,
+    TOUCH_KEY2 = 0x02,
+    TOUCH_KEY3 = 0x03,
+    TOUCH_KEY4 = 0x04,
+    TOUCH_KEY5 = 0x05,
+};
+
+// 长按、短按等定义
+enum
+{
+    KEY_PRESS_SHORT = 0x00,      // 按键短按
+    KEY_PRESS_LONG = 0x01,       // 按键长按
+    KEY_PRESS_CONTINUE = 0x02,   // 持续
+    KEY_PRESS_LOOSE = 0x03,      // 长按后松开
+    KEY_PRESS_DOUBLECLICK = 0x04 // 按键双击（触摸按键和遥控器按键的）
+};
+
+extern volatile bit send_keyval_flag; // 是否要发送键值的标志位，0--不发送，1--发送
 
 void send_keyval_pin_init(void);   // 发送键值的引脚进行初始化
 void send_keyval_timer_init(void); // 发送键值的引脚要搭配使用到的定时器进行初始化，定时器初始化后为关闭状态
 
-void tmr1_enable(void);  // 开启定时器TMR1
-void tmr1_disable(void); // 关闭定时器TMR1，清空计数值
+// void tmr1_enable(void);  // 开启定时器TMR1
+// void tmr1_disable(void); // 关闭定时器TMR1，清空计数值
 
 void send_keyval(unsigned short send_data); // 发送一次按键键值（总共16bit）
 void send_status_keyval(u8 status, u8 key); // 发送带有按键状态信息的16位数据

@@ -46,13 +46,14 @@ void delay(u16 cnt)
  * @param  ms : the number of ms to delay
  * @retval None
  */
-void delay_ms(u16 ms)
+// 误差在5%以内
+void delay_ms(u32 ms)
 {
     while (ms--)
     {
-        // WDT_KEY = WDT_KEY_VAL(0xAA); // 喂狗操作
-        delay(1450);
-        // delay(1140); // 调试得出的数值（由于这里加了喂狗操作，数值需要重新调整，不用原来的1450）
+        // WDT_KEY = WDT_KEY_VAL(0xAA); // 喂狗操作(如果加了喂狗操作，还需要调节以下延时时间)
+        
+        delay(1100);
     }
 }
 

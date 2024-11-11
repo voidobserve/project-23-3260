@@ -17,17 +17,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "include.h"
-// #include "rf_recv.h" // RF接收相关的接口
-#include "my_gpio.h" // 输出键值的引脚
-#include "send_key.h"
-
-// #include "rf_learn.h" // "学习"，记录地址
-
-// #include "flash.h" // 单片机的flash操作，测试用
-
-#include "tmr3.h"
-
-// #include "rf_scan.h"
+#include "my_config.h"
 
 /** @addtogroup Template_Project
  * @{
@@ -436,14 +426,14 @@ void tk_param_init(void)
     // wut_init();
 }
 
-/**
- * @brief  Touchkey  Circular execution function
- * @param  None
- * @retval None
- */
-void tk_handle(void)
-{
-    // u32 tmp = 0; // 临时变量，测试用
-}
+// /**
+//  * @brief  Touchkey  Circular execution function
+//  * @param  None
+//  * @retval None
+//  */
+// void tk_handle(void)
+// {
+//     // u32 tmp = 0; // 临时变量，测试用
+// }
 
 /*************************** (C) COPYRIGHT 2022 TAIXIN-IC ***** END OF FILE *****/

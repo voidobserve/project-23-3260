@@ -406,6 +406,16 @@
               <FileType>1</FileType>
               <FilePath>..\..\Hardware\aip650.c</FilePath>
             </File>
+            <File>
+              <FileName>uart0.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\Hardware\uart0.c</FilePath>
+            </File>
+            <File>
+              <FileName>uart1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\Hardware\uart1.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -437,39 +447,14 @@
               <FilePath>..\..\User\tk_user.c</FilePath>
             </File>
             <File>
-              <FileName>my_gpio.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\User\my_gpio.c</FilePath>
-            </File>
-            <File>
               <FileName>send_key.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\User\send_key.c</FilePath>
             </File>
             <File>
-              <FileName>tmr3.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\User\tmr3.c</FilePath>
-            </File>
-            <File>
-              <FileName>tmr2.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\User\tmr2.c</FilePath>
-            </File>
-            <File>
-              <FileName>key_conversion.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\User\key_conversion.c</FilePath>
-            </File>
-            <File>
               <FileName>my_config.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\User\my_config.h</FilePath>
-            </File>
-            <File>
-              <FileName>tmr4.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\User\tmr4.c</FilePath>
             </File>
           </Files>
         </Group>

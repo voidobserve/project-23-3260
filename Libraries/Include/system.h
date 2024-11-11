@@ -332,7 +332,7 @@ void delay(u16 cnt);
   * @param  ms : the number of ms to delay
   * @retval None
   */
-void delay_ms(u16 ms);
+void delay_ms(u32 ms);
 
 /**
   * @brief  System initialization function

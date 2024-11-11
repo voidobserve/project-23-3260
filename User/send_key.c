@@ -1,8 +1,8 @@
 // 用于发送键值的源程序，使用到了定时器TMR1
 #include "send_key.h"
-#include "tmr2.h" // 定时器TMR2可用于发送格式头的延时和每次发送间隔的延时
+// #include "tmr2.h" // 定时器TMR2可用于发送格式头的延时和每次发送间隔的延时
 
-volatile char send_keyval_flag = 0; // 是否要发送键值的标志位，0--不发送，1--发送
+volatile bit send_keyval_flag = 0; // 是否要发送键值的标志位，0--不发送，1--发送
 
 static volatile unsigned short key_val = 0; // 要发送的16位数据，高位先行MSB
 
@@ -10,33 +10,12 @@ static volatile unsigned short key_val = 0; // 要发送的16位数据，高位先行MSB
 // 引脚的默认状态为低电平
 void send_keyval_pin_init(void)
 {
-#ifdef DEVELOPMENT_BOARD
+    P1_MD0 &= ~(GPIO_P11_MODE_SEL(0x03));
+    P1_MD0 |= GPIO_P11_MODE_SEL(0x01); // 输出模式
+    FOUT_S11 = GPIO_FOUT_AF_FUNC; // 选择AF功能输出
 
-    P1_MD0 &= ~(GPIO_P11_MODE_SEL(0x1)); // 对应的寄存器先清零
-    P1_MD0 |= GPIO_P11_MODE_SEL(0x1);    // P1_1配置为输出模式
-
-    P1_PU |= GPIO_P11_PULL_UP(0x01); // 内部的上拉电阻
-
-    FOUT_S11 = GPIO_FOUT_AF_FUNC; // 选择AF功能输出（看手册上是数字复用功能输出，是输出逻辑高低电平用的）
-
-    // 位操作，让p1_1输出高电平（默认让引脚处于空闲状态，空闲状态为高电平）
-    P11 = 1;
-
-#endif // end of #ifdef DEVELOPMENT_BOARD
-
-#ifdef CIRCUIT_BOARD
-
-    P3_MD0 &= ~(GPIO_P31_MODE_SEL(0x1)); // 对应的寄存器先清零
-    P3_MD0 |=   GPIO_P31_MODE_SEL(0x1);    // P2_1配置为输出模式
- 
-    P3_PU |= GPIO_P31_PULL_UP(0x01); // 内部的上拉电阻
-
-    FOUT_S31 = GPIO_FOUT_AF_FUNC; // 选择AF功能输出（看手册上是数字复用功能输出，是输出逻辑高低电平用的）
-
-    // 位操作，让p2_1输出高电平（默认让引脚处于空闲状态，空闲状态为高电平）
-    P31 = 1;
-
-#endif // end of #ifdef CIRCUIT_BOARD
+    // 位操作，输出高电平（默认让引脚处于空闲状态，空闲状态为高电平）
+    SEND_KEY_VAL_PIN = 1;
 }
 
 // 发送键值信号的引脚使用的定时器的初始化
@@ -215,7 +194,9 @@ void send_keyval(unsigned short send_data)
     // 先发送协议头（引脚空闲状态是高电平，用低电平作为协议头）
     SEND_KEY_VAL_PIN = 0;
 
-    // delay_ms(5);
+#if 1
+    delay_ms(5);
+#else    
     tmr2_enable();       // 打开定时器TMR2，下面开始用定时器来实现延时5ms
     while (tmr2_cnt < 1) // TMR2开启5ms后才会将这个计数值加一
     {
@@ -224,6 +205,7 @@ void send_keyval(unsigned short send_data)
     tmr2_disable(); // 关闭定时器TMR2，函数内部会把它硬件的计数值清零
     tmr2_flag = 0;  // 清除标志位
     tmr2_cnt = 0;   // tmr2_cnt = 0; // 清除定时器的计数值
+#endif
 
     tmr1_enable(); // 打开定时器，发送键值数据
     send_keyval_flag = 1;
@@ -232,17 +214,6 @@ void send_keyval(unsigned short send_data)
     tmr1_disable(); // 关闭定时器
 
     delay_ms(10); // 每个键值至少间隔10ms（要求是5~10ms）
-
-#if 0
-    tmr2_enable();       // 打开定时器TMR2，这里通过复用定时器来实现延时10ms
-    while (tmr2_cnt < 2) // TMR2开启5ms后才会将这个计数值加一
-    {
-        WDT_KEY = WDT_KEY_VAL(0xAA); // 喂狗
-    }
-    tmr2_disable(); // 关闭定时器TMR2，函数内部会把它硬件的计数值清零
-    tmr2_flag = 0;  // 清除标志位
-    tmr2_cnt = 0;   // tmr2_cnt = 0; // 清除定时器的计数值
-#endif
 }
 
 // 发送带有按键状态信息的16位数据
@@ -251,11 +222,6 @@ void send_keyval(unsigned short send_data)
 void send_status_keyval(u8 status, u8 key)
 {
     u16 send_data = 0;
-
-    // if (0 == key)
-    // {
-    //     return; // 不发送空的键值
-    // }
 
     send_data = status << (5 + 8);  // 长短按信息（3bits）
     send_data |= (key & 0x1F) << 8; // 存放5位的键值

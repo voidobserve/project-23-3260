@@ -76,7 +76,8 @@
 #define TK_CH24_VALIB                               (1UL << 24)
 #define TK_CH25_VALIB                               (1UL << 25)
 
-void tk_handle(void);
+void tk_param_init(void);
+// void tk_handle(void);
 
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/

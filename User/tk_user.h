@@ -53,7 +53,7 @@
 void debug_gpio_config(void);
 #endif
 
-void user_init(void);
+// void user_init(void);
 void user_handle(void);
 /**
   * @}
