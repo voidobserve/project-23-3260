@@ -1,10 +1,10 @@
-C51 COMPILER V9.60.7.0   UART0                                                             11/11/2024 17:28:53 PAGE 1   
+C51 COMPILER V9.60.7.0   UART0                                                             11/12/2024 17:21:52 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE UART0
 OBJECT MODULE PLACED IN .\Release\Objects\uart0.obj
 COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\..\Hardware\uart0.c LARGE OPTIMIZE(8,SPEED) BROWSE INTVECTOR(0X000C) 
-                    -INCDIR(..\..\Libraries\Include;..\..\User;..\..\User\lib;..\..\Hardware) INTERVAL(3) DEBUG OBJECTEXTEND PRINT(.\Release\
+                    -INCDIR(..\..\Libraries\Include;..\..\Hardware;..\..\User;..\..\User\lib) INTERVAL(3) DEBUG OBJECTEXTEND PRINT(.\Release\
                     -Listings\uart0.lst) OBJECT(.\Release\Objects\uart0.obj)
 
 line level    source

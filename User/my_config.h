@@ -11,19 +11,20 @@
 // 触摸按键的数量和通道位置必须要一一对应
 // ============================================================
 
-#define USE_MY_DEBUG 1
-
+#define USE_MY_DEBUG 0
+#include <stdio.h>
 
 // 开发板上使用P11作为发送键值信号的引脚
 // 目标电路板上使用的是P21
 // 如果需要修改，要去send_key.c中修改引脚相关的初始化配置函数
 #define SEND_KEY_VAL_PIN            P11 // 发送键值信号的引脚
 
+#define ARRAY_SIZE(arry) (sizeof(arry) / sizeof(arry[0]))
 
 
-
-
+#include "tmr0.h" // 检测串口接收超时的定时器
 #include "uart0.h" // 调试用的串口
+#include "uart1.h" // 接收指令的串口
 #include "aip650.h" 
 #include "send_key.h"
 

@@ -11,6 +11,8 @@
 */
 u8 aip650_show_buff[3] = {0}; // aip650显示缓冲区（显存）
 
+volatile bit flag_is_instruction_err = 0; // 标志位，表示指令是否不符合格式
+
 // 存放要显示的内容
 const u8 aip650_data_map_buf[] = {
     0xE7, // 0
@@ -30,6 +32,8 @@ const u8 aip650_data_map_buf[] = {
     0xD3, // 大写 "H"
     0x62, // 大写 "L"
     0xC7, // 小写 "n"
+    0x57, // 大写 "P"
+    0xE3, // 大写 "U"
 };
 
 /*指令集*/
@@ -139,17 +143,17 @@ void aip650_show_refresh(void)
 // 向aip650的显存写入要显示的数字,
 // 如果传参 == 0xFF，则清空要显示的数字，不影响小数点的显示
 // 如果传入了超出范围的参数，整个aip650显存将被清空
-void aip650_show_data(u8 data_bit1, u8 data_bit0)
+static void __aip650_show_data(u8 data_bit1, u8 data_bit0)
 {
-    if ((0xFF != data_bit0 && data_bit0 > (sizeof(aip650_data_map_buf) - 1)) ||
-        (0xFF != data_bit1 && data_bit1 > (sizeof(aip650_data_map_buf) - 1)))
-    {
-        // 数值超出了LED能够显示的范围，清空显示
-        aip650_show_buff[2] = 0;
-        aip650_show_buff[0] = 0;
-        // aip650_show_refresh();
-        return;
-    }
+    // if ((0xFF != data_bit0 && data_bit0 > (sizeof(aip650_data_map_buf) - 1)) ||
+    //     (0xFF != data_bit1 && data_bit1 > (sizeof(aip650_data_map_buf) - 1)))
+    // {
+    //     // 数值超出了LED能够显示的范围，清空显示
+    //     aip650_show_buff[2] = 0;
+    //     aip650_show_buff[0] = 0;
+    //     // aip650_show_refresh();
+    //     return;
+    // }
 
     if (0xFF == data_bit0)
     {
@@ -178,7 +182,7 @@ void aip650_show_data(u8 data_bit1, u8 data_bit0)
 //              2--显示第二个小数点(从左往右数),
 //              3--两个小数点都显示
 //             如果传入了超出范围的参数，整个aip650显存将被清空
-void aip650_show_point(u8 locate)
+static void __aip650_show_point(u8 locate)
 {
     if (0 == locate)
     {
@@ -200,12 +204,12 @@ void aip650_show_point(u8 locate)
         aip650_show_buff[2] |= 0x08;
         aip650_show_buff[0] |= 0x08;
     }
-    else
-    {
-        aip650_show_buff[0] = 0;
-        aip650_show_buff[1] = 0;
-        aip650_show_buff[2] = 0;
-    }
+    // else
+    // {
+    //     aip650_show_buff[0] = 0;
+    //     aip650_show_buff[1] = 0;
+    //     aip650_show_buff[2] = 0;
+    // }
 
     // aip650_show_refresh();
 }
@@ -215,18 +219,19 @@ void aip650_show_point(u8 locate)
 //                                第4bit表示按键K5对应的LED的状态，
 //                                0表示熄灭，1表示点亮
 //      如果传入了超出范围的参数，整个aip650显存将被清空
-void aip650_show_led_of_touch(u8 led_data)
-{   
+static void __aip650_show_led_of_touch(u8 led_data)
+{
     aip650_show_buff[1] = 0; // 清空原来的数据
 
-    if (led_data > 0x1F)
-    {
-        // 传入的数据格式有误，清空显示
-        aip650_show_buff[0] = 0;
-        // aip650_show_buff[1] = 0;
-        aip650_show_buff[2] = 0;
-        return;
-    }
+    // if (led_data > 0x1F)
+    // {
+    //     // 传入的数据格式有误，清空显示
+    //     aip650_show_buff[0] = 0;
+    //     // aip650_show_buff[1] = 0;
+    //     aip650_show_buff[2] = 0;
+
+    //     return;
+    // }
 
     if (led_data & 0x01) // 按键K1
     {
@@ -272,4 +277,24 @@ void aip650_show_led_of_touch(u8 led_data)
     {
         aip650_show_buff[1] &= ~0x20;
     }
+}
+
+//
+void aip650_show_handle(instruction_t instruction)
+{
+    // 对指令进行检查，是否符合协议的格式
+    if ((0xFF != instruction.seg1 && instruction.seg1 > (sizeof(aip650_data_map_buf) - 1)) ||
+        (0xFF != instruction.seg2 && instruction.seg2 > (sizeof(aip650_data_map_buf) - 1)) ||
+        (instruction.point > 0x03) ||
+        (instruction.led > 0x1F) /* 数值超出了LED能够显示的范围 */)
+    {
+        memset(aip650_show_buff, 0x00, ARRAY_SIZE(aip650_show_buff));
+        aip650_show_refresh();
+        return;
+    }
+
+    __aip650_show_data(instruction.seg1, instruction.seg2);
+    __aip650_show_point(instruction.point);
+    __aip650_show_led_of_touch(instruction.led);
+    aip650_show_refresh();
 }

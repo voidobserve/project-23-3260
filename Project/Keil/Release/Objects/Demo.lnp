@@ -4,7 +4,7 @@
 ".\Release\Objects\aip650.obj",
 ".\Release\Objects\uart0.obj",
 ".\Release\Objects\uart1.obj",
-".\Release\Objects\tk_debug.obj",
+".\Release\Objects\tmr0.obj",
 ".\Release\Objects\tk_set.obj",
 ".\Release\Objects\main.obj",
 ".\Release\Objects\tk_user.obj",

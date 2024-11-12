@@ -1,10 +1,10 @@
-C51 COMPILER V9.60.7.0   SEND_KEY                                                          11/11/2024 17:28:53 PAGE 1   
+C51 COMPILER V9.60.7.0   SEND_KEY                                                          11/12/2024 17:21:53 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE SEND_KEY
 OBJECT MODULE PLACED IN .\Release\Objects\send_key.obj
 COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\..\User\send_key.c LARGE OPTIMIZE(8,SPEED) BROWSE INTVECTOR(0X000C) I
-                    -NCDIR(..\..\Libraries\Include;..\..\User;..\..\User\lib;..\..\Hardware) INTERVAL(3) DEBUG OBJECTEXTEND PRINT(.\Release\L
+                    -NCDIR(..\..\Libraries\Include;..\..\Hardware;..\..\User;..\..\User\lib) INTERVAL(3) DEBUG OBJECTEXTEND PRINT(.\Release\L
                     -istings\send_key.lst) OBJECT(.\Release\Objects\send_key.obj)
 
 line level    source
@@ -62,7 +62,7 @@ line level    source
   50   1          // __EnableIRQ(TMR1_IRQn);
   51   1          // IE_EA = 1; // 使能总中断
   52   1      }
-C51 COMPILER V9.60.7.0   SEND_KEY                                                          11/11/2024 17:28:53 PAGE 2   
+C51 COMPILER V9.60.7.0   SEND_KEY                                                          11/12/2024 17:21:53 PAGE 2   
 
   53          
   54          // 开启定时器TMR1，开始计时
@@ -126,7 +126,7 @@ line level    source
  111   4                      switch (cur_period)
  112   4                      {
  113   5                      case 0:
-C51 COMPILER V9.60.7.0   SEND_KEY                                                          11/11/2024 17:28:53 PAGE 3   
+C51 COMPILER V9.60.7.0   SEND_KEY                                                          11/12/2024 17:21:53 PAGE 3   
 
  114   5                          SEND_KEY_VAL_PIN = 1;
  115   5                          break;
@@ -190,7 +190,7 @@ line level    source
  173   3                  {
  174   4                      // 清空计数值，准备下一次发送
  175   4                      cur_bit = 0;
-C51 COMPILER V9.60.7.0   SEND_KEY                                                          11/11/2024 17:28:53 PAGE 4   
+C51 COMPILER V9.60.7.0   SEND_KEY                                                          11/12/2024 17:21:53 PAGE 4   
 
  176   4                      cur_period = 0;
  177   4                      last_period = 0;
@@ -254,7 +254,7 @@ MODULE INFORMATION:   STATIC OVERLAYABLE
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =      5    ----
    PDATA SIZE       =   ----    ----
-C51 COMPILER V9.60.7.0   SEND_KEY                                                          11/11/2024 17:28:53 PAGE 5   
+C51 COMPILER V9.60.7.0   SEND_KEY                                                          11/12/2024 17:21:53 PAGE 5   
 
    DATA SIZE        =   ----    ----
    IDATA SIZE       =   ----    ----

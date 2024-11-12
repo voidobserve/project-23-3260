@@ -324,7 +324,7 @@
               <MiscControls>interval(3)</MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>..\..\Libraries\Include;..\..\User;..\..\User\lib;..\..\Hardware</IncludePath>
+              <IncludePath>..\..\Libraries\Include;..\..\Hardware;..\..\User;..\..\User\lib</IncludePath>
             </VariousControls>
           </C51>
           <Ax51>
@@ -416,6 +416,11 @@
               <FileType>1</FileType>
               <FilePath>..\..\Hardware\uart1.c</FilePath>
             </File>
+            <File>
+              <FileName>tmr0.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\Hardware\tmr0.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -425,11 +430,6 @@
               <FileName>tk_config.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\User\lib\tk_config.h</FilePath>
-            </File>
-            <File>
-              <FileName>tk_debug.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\User\lib\tk_debug.c</FilePath>
             </File>
             <File>
               <FileName>tk_set.c</FileName>
