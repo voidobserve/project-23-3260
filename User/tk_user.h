@@ -55,6 +55,9 @@ void debug_gpio_config(void);
 
 // void user_init(void);
 void user_handle(void);
+
+void touch_key_scan(void); // 非阻塞的按键扫描函数
+
 /**
   * @}
   */

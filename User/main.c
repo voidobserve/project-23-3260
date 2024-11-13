@@ -60,11 +60,9 @@ void main(void)
     /* 系统主循环 */
     while (1)
     {
-        /* 按键扫描函数 */
-        __tk_scan(); // 使用了库里面的接口（闭源库）
-
         /* 用户循环扫描函数接口 */
-        user_handle();
+        // user_handle(); // 按键扫描--会阻塞
+        touch_key_scan(); // 非阻塞的按键扫描
         uart1_recv_err_handle();
 
         if (flag_cur_recv_status == CUR_RECV_STATUS_COMPLETE)

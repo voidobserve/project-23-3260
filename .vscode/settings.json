@@ -6,6 +6,7 @@
         "uart1.h": "c",
         "my_config.h": "c",
         "include.h": "c",
-        "tmr0.h": "c"
+        "tmr0.h": "c",
+        "uart0.h": "c"
     }
 }

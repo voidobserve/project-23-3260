@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   AIP650                                                            11/12/2024 17:21:52 PAGE 1   
+C51 COMPILER V9.60.7.0   AIP650                                                            11/13/2024 17:38:41 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE AIP650
@@ -62,7 +62,7 @@ line level    source
   51   1          P1_ODN |= (GPIO_P15_ODN_EN(0x01) | GPIO_P16_ODN_EN(0x01));          // 开漏
   52   1          P1_AF0 |= (GPIO_P15_FUNC_SEL(0x01) | GPIO_P16_FUNC_SEL(0x01));      // P15作为IIC_CLK, P16作为IIC_
              -DATA
-C51 COMPILER V9.60.7.0   AIP650                                                            11/12/2024 17:21:52 PAGE 2   
+C51 COMPILER V9.60.7.0   AIP650                                                            11/13/2024 17:38:41 PAGE 2   
 
   53   1      
   54   1          I2C_CON = I2C_CR_SEL(0x02); // 配置波特率，可根据表格自行选择
@@ -126,7 +126,7 @@ line level    source
  111   2              // 配置发送停止位
  112   2              I2C_CON |= (I2C_STOP_BIT(0x1) | I2C_SI_CLEAR(0x1));
  113   2          }
-C51 COMPILER V9.60.7.0   AIP650                                                            11/12/2024 17:21:52 PAGE 3   
+C51 COMPILER V9.60.7.0   AIP650                                                            11/13/2024 17:38:41 PAGE 3   
 
  114   1      
  115   1          return ack_flag;
@@ -190,7 +190,7 @@ line level    source
  171   2          }
  172   1      
  173   1          if (0xFF != data_bit1)
-C51 COMPILER V9.60.7.0   AIP650                                                            11/12/2024 17:21:52 PAGE 4   
+C51 COMPILER V9.60.7.0   AIP650                                                            11/13/2024 17:38:41 PAGE 4   
 
  174   1          {
  175   2              aip650_show_buff[2] = aip650_data_map_buf[data_bit1];
@@ -254,7 +254,7 @@ line level    source
  233   1          //     return;
  234   1          // }
  235   1      
-C51 COMPILER V9.60.7.0   AIP650                                                            11/12/2024 17:21:52 PAGE 5   
+C51 COMPILER V9.60.7.0   AIP650                                                            11/13/2024 17:38:41 PAGE 5   
 
  236   1          if (led_data & 0x01) // 按键K1
  237   1          {
@@ -318,7 +318,7 @@ line level    source
  295   1      
  296   1          __aip650_show_data(instruction.seg1, instruction.seg2);
  297   1          __aip650_show_point(instruction.point);
-C51 COMPILER V9.60.7.0   AIP650                                                            11/12/2024 17:21:52 PAGE 6   
+C51 COMPILER V9.60.7.0   AIP650                                                            11/13/2024 17:38:41 PAGE 6   
 
  298   1          __aip650_show_led_of_touch(instruction.led);
  299   1          aip650_show_refresh();

@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   MAIN                                                              11/12/2024 17:21:53 PAGE 1   
+C51 COMPILER V9.60.7.0   MAIN                                                              11/13/2024 17:38:41 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
@@ -62,56 +62,54 @@ line level    source
   51   1      
   52   1          /* 按键初始化 */
   53   1          tk_param_init();
-C51 COMPILER V9.60.7.0   MAIN                                                              11/12/2024 17:21:53 PAGE 2   
+C51 COMPILER V9.60.7.0   MAIN                                                              11/13/2024 17:38:41 PAGE 2   
 
   54   1          tmr0_config(); // 配置检测串口接收数据超时的定时器
   55   1      #if USE_MY_DEBUG
-                  uart0_config(); // 调试使用到的串口
-              #endif
+  56   1          uart0_config(); // 调试使用到的串口
+  57   1      #endif
   58   1          uart1_config();
   59   1      
   60   1          /* 系统主循环 */
   61   1          while (1)
   62   1          {
-  63   2              /* 按键扫描函数 */
-  64   2              __tk_scan(); // 使用了库里面的接口（闭源库）
-  65   2      
-  66   2              /* 用户循环扫描函数接口 */
-  67   2              user_handle();
-  68   2              uart1_recv_err_handle();
-  69   2      
-  70   2              if (flag_cur_recv_status == CUR_RECV_STATUS_COMPLETE)
-  71   2              {
-  72   3      #if USE_MY_DEBUG
-                          printf("recv complete\n");
-              
-                          printf("seg1 %#x\n", (u16)instruction.seg1);
-                          printf("seg2 %#x\n", (u16)instruction.seg2);
-                          printf("point %#x\n", (u16)instruction.point);
-                          printf("led %#x\n", (u16)instruction.led);
-                          // printf("addr  %p\n", &instruction);
-              #endif
-  81   3                  aip650_show_handle(instruction);
-  82   3      
-  83   3                  memset(&instruction, 0xFF, sizeof(instruction)); // 清空存放指令的结构体变量
-  84   3                  flag_cur_recv_status = CUR_RECV_STATUS_NONE;     // 清除接收完成标志
-  85   3              }
-  86   2      
-  87   2              // /* 喂狗 :建议不要关闭看门狗，默认2s复位*/
-  88   2              // WDT_KEY = WDT_KEY_VAL(0xAA);
-  89   2          }
-  90   1      }
-  91          
-  92          /**
-  93           * @}
-  94           */
-  95          
-  96          /*************************** (C) COPYRIGHT 2022 HUGE-IC ***** END OF FILE *****/
+  63   2              /* 用户循环扫描函数接口 */
+  64   2              // user_handle(); // 按键扫描--会阻塞
+  65   2              touch_key_scan(); // 非阻塞的按键扫描
+  66   2              uart1_recv_err_handle();
+  67   2      
+  68   2              if (flag_cur_recv_status == CUR_RECV_STATUS_COMPLETE)
+  69   2              {
+  70   3      #if USE_MY_DEBUG
+  71   3                  printf("recv complete\n");
+  72   3      
+  73   3                  printf("seg1 %#x\n", (u16)instruction.seg1);
+  74   3                  printf("seg2 %#x\n", (u16)instruction.seg2);
+  75   3                  printf("point %#x\n", (u16)instruction.point);
+  76   3                  printf("led %#x\n", (u16)instruction.led);
+  77   3                  // printf("addr  %p\n", &instruction);
+  78   3      #endif
+  79   3                  aip650_show_handle(instruction);
+  80   3      
+  81   3                  memset(&instruction, 0xFF, sizeof(instruction)); // 清空存放指令的结构体变量
+  82   3                  flag_cur_recv_status = CUR_RECV_STATUS_NONE;     // 清除接收完成标志
+  83   3              }
+  84   2      
+  85   2              // /* 喂狗 :建议不要关闭看门狗，默认2s复位*/
+  86   2              // WDT_KEY = WDT_KEY_VAL(0xAA);
+  87   2          }
+  88   1      }
+  89          
+  90          /**
+  91           * @}
+  92           */
+  93          
+  94          /*************************** (C) COPYRIGHT 2022 HUGE-IC ***** END OF FILE *****/
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =     97    ----
-   CONSTANT SIZE    =   ----    ----
+   CODE SIZE        =    195    ----
+   CONSTANT SIZE    =     55    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----    ----

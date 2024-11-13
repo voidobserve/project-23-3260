@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   UART1                                                             11/12/2024 17:21:52 PAGE 1   
+C51 COMPILER V9.60.7.0   UART1                                                             11/13/2024 17:38:41 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE UART1
@@ -53,8 +53,8 @@ line level    source
   42   2              aip650_show_refresh();
   43   2      
   44   2      #if USE_MY_DEBUG
-                      printf("recv err\n");
-              #endif
+  45   2              printf("recv err\n");
+  46   2      #endif
   47   2      
   48   2              flag_cur_recv_status = CUR_RECV_STATUS_NONE;
   49   2          }
@@ -62,7 +62,7 @@ line level    source
   51   1          if (tmr0_cnt >= 10)
   52   1          {
   53   2              // 接收到协议头后，超过10ms没有收到数据
-C51 COMPILER V9.60.7.0   UART1                                                             11/12/2024 17:21:52 PAGE 2   
+C51 COMPILER V9.60.7.0   UART1                                                             11/13/2024 17:38:41 PAGE 2   
 
   54   2              memset(&instruction, 0xFF, sizeof(instruction));
   55   2              memset(aip650_show_buff, 0x00, ARRAY_SIZE(aip650_show_buff));
@@ -72,8 +72,8 @@ line level    source
   59   2              tmr0_cnt = 0;
   60   2      
   61   2      #if USE_MY_DEBUG
-                      printf("recv time out\n");
-              #endif
+  62   2              printf("recv time out\n");
+  63   2      #endif
   64   2          }
   65   1      
   66   1          // printf("tmr0 cnt %d\n", (u16)tmr0_cnt);
@@ -126,7 +126,7 @@ line level    source
  113   3                  // 接收控制触摸按键对应的LED的数据
  114   3                  instruction.led = uart_data;
  115   3                  flag_cur_recv_status = CUR_RECV_STATUS_END;
-C51 COMPILER V9.60.7.0   UART1                                                             11/12/2024 17:21:52 PAGE 3   
+C51 COMPILER V9.60.7.0   UART1                                                             11/13/2024 17:38:41 PAGE 3   
 
  116   3              }
  117   2              else if (flag_cur_recv_status == CUR_RECV_STATUS_END &&
@@ -148,8 +148,8 @@ line level    source
  132   3                  tmr0_cnt = 0;
  133   3      
  134   3      #if USE_MY_DEBUG
-                          // printf("recv err\n");
-              #endif
+ 135   3                  // printf("recv err\n");
+ 136   3      #endif
  137   3              }
  138   2          }
  139   1      
@@ -159,8 +159,8 @@ line level    source
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    388    ----
-   CONSTANT SIZE    =   ----    ----
+   CODE SIZE        =    406    ----
+   CONSTANT SIZE    =     25    ----
    XDATA SIZE       =      5       1
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----    ----

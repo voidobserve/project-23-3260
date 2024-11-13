@@ -35,7 +35,7 @@ enum
     KEY_PRESS_LONG = 0x01,       // 按键长按
     KEY_PRESS_CONTINUE = 0x02,   // 持续
     KEY_PRESS_LOOSE = 0x03,      // 长按后松开
-    KEY_PRESS_DOUBLECLICK = 0x04 // 按键双击（触摸按键和遥控器按键的）
+    KEY_PRESS_DOUBLECLICK = 0x04, // 按键双击（触摸按键和遥控器按键的）
 };
 
 extern volatile bit send_keyval_flag; // 是否要发送键值的标志位，0--不发送，1--发送
