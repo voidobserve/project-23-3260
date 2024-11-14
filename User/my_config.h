@@ -10,7 +10,7 @@
 // 触摸按键的数量和通道位置必须要一一对应
 // ============================================================
 
-#define USE_MY_DEBUG 1
+#define USE_MY_DEBUG 0
 #include <stdio.h>
 
 // 发送键值信号的引脚
@@ -28,7 +28,7 @@
 #define DETECT_DOUBLE_CLICK_INTERVAL (100) // 检测双击的时间间隔(单位：ms)
 #define LONG_PRESS_TIME_THRESHOLD_MS (750) // 长按时间阈值（单位：ms）
 #define HOLD_PRESS_TIME_THRESHOLD_MS (150) // 长按持续(不松手)的时间阈值(单位：ms)，每隔 xx 时间认为有一次长按持续事件
-#define LOOSE_PRESS_CNT_MS (200)           // 松手计时，松开手多久，才认为是真的松手了
+#define LOOSE_PRESS_CNT_MS (50)           // 松手计时，松开手多久，才认为是真的松手了
 #define ONE_CYCLE_TIME_MS (0)              // 主函数完成一次循环所需的时间，单位：ms (0--说明每次调用该函数的时间很短，可以忽略不计)
 
 #include "tmr0.h"  // 检测串口接收超时的定时器

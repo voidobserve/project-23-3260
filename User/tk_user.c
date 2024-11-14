@@ -512,6 +512,8 @@ void user_handle(void)
 }
 #endif
 
+
+
 /**
  * @brief __is_double_click() 判断是否有双击同一个触摸按键,内部最长延时时间：DETECT_DOUBLE_CLICK_INTERVAL
  *
@@ -588,8 +590,7 @@ void touch_key_scan(void)
                     // 如果长按超过了设置的长按时间
                     // 跳转到长按处理
                     touch_time_cnt = 0; // 清除长按时间计数
-
-                    printf("long press\n");
+                    // printf("long press\n");
                     touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_HANDLE_LONG_PRESS;
                 }
             }
@@ -888,8 +889,35 @@ void touch_key_scan(void)
 #endif
                     send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY1);
                 }
+                else if (TOUCH_KEY_ID_2 == touch_key_last)
+                {
+#if USE_MY_DEBUG
+                    printf("k2 long press loose\n");
+#endif
+                    send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY2);
+                }
+                else if (TOUCH_KEY_ID_3 == touch_key_last)
+                {
+#if USE_MY_DEBUG
+                    printf("k3 long press loose\n");
+#endif
+                    send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY3);
+                }
+                else if (TOUCH_KEY_ID_4 == touch_key_last)
+                {
+#if USE_MY_DEBUG
+                    printf("k4 long press loose\n");
+#endif
+                    send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY4);
+                }
+                else if (TOUCH_KEY_ID_5 == touch_key_last)
+                {
+#if USE_MY_DEBUG
+                    printf("k5 long press loose\n");
+#endif
+                    send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY5);
+                }
             }
-
 
             touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_END; // 跳转到收尾处理
         }
