@@ -37,7 +37,7 @@ void main(void)
     // 看门狗默认打开, 复位时间2s
     system_init();
 
-    WDT_KEY = WDT_KEY_VAL(0xDD); //  关闭看门狗
+    // WDT_KEY = WDT_KEY_VAL(0xDD); //  关闭看门狗
 
     // 关闭HCK和HDA的调试功能:
     WDT_KEY = 0x55;
@@ -61,9 +61,8 @@ void main(void)
     while (1)
     {
         /* 用户循环扫描函数接口 */
-        // user_handle(); // 按键扫描--会阻塞
-        touch_key_scan(); // 非阻塞的按键扫描
-        uart1_recv_err_handle();
+        touch_key_scan();        // 非阻塞的按键扫描
+        uart1_recv_err_handle(); // 串口接收数据出错/超时处理
 
         if (flag_cur_recv_status == CUR_RECV_STATUS_COMPLETE)
         {
@@ -82,8 +81,21 @@ void main(void)
             flag_cur_recv_status = CUR_RECV_STATUS_NONE;     // 清除接收完成标志
         }
 
+        // delay_ms(500);
+
+        // {
+        //     static u32 cnt = 0;
+        //     cnt++;
+
+        //     if (cnt >= 500)
+        //     {
+        //         printf("main\n");
+        //         cnt = 0;
+        //     }
+        // }
+
         // /* 喂狗 :建议不要关闭看门狗，默认2s复位*/
-        // WDT_KEY = WDT_KEY_VAL(0xAA);
+        WDT_KEY = WDT_KEY_VAL(0xAA);
     }
 }
 

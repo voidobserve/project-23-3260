@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   UART1                                                             11/14/2024 08:58:50 PAGE 1   
+C51 COMPILER V9.60.7.0   UART1                                                             12/02/2024 16:50:47 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE UART1
@@ -47,115 +47,113 @@ line level    source
   36          {
   37   1          if (CUR_RECV_STATUS_ERR == flag_cur_recv_status)
   38   1          {
-  39   2              // 如果接收协议头和协议尾出错
-  40   2              memset(&instruction, 0xFF, sizeof(instruction));
-  41   2              memset(aip650_show_buff, 0x00, ARRAY_SIZE(aip650_show_buff));
-  42   2              aip650_show_refresh();
-  43   2      
-  44   2      #if USE_MY_DEBUG
-                      printf("recv err\n");
+  39   2      // 如果接收协议头和协议尾出错
+  40   2      #if USE_MY_DEBUG
+                      // printf("recv err\n");
               #endif
-  47   2      
-  48   2              flag_cur_recv_status = CUR_RECV_STATUS_NONE;
-  49   2          }
-  50   1      
-  51   1          if (tmr0_cnt >= 10)
-  52   1          {
-  53   2              // 接收到协议头后，超过10ms没有收到数据
-C51 COMPILER V9.60.7.0   UART1                                                             11/14/2024 08:58:50 PAGE 2   
+  43   2              memset(&instruction, 0xFF, sizeof(instruction));
+  44   2              memset(aip650_show_buff, 0x00, ARRAY_SIZE(aip650_show_buff));
+  45   2              aip650_show_refresh();
+  46   2      
+  47   2              flag_cur_recv_status = CUR_RECV_STATUS_NONE;
+  48   2          }
+  49   1      
+  50   1          if (tmr0_cnt >= 10)
+  51   1          {
+  52   2      // 接收到协议头后，超过10ms没有收到数据
+  53   2      #if USE_MY_DEBUG
+C51 COMPILER V9.60.7.0   UART1                                                             12/02/2024 16:50:47 PAGE 2   
 
-  54   2              memset(&instruction, 0xFF, sizeof(instruction));
-  55   2              memset(aip650_show_buff, 0x00, ARRAY_SIZE(aip650_show_buff));
-  56   2              aip650_show_refresh();
-  57   2              flag_cur_recv_status = CUR_RECV_STATUS_NONE;
-  58   2              tmr0_disable();
-  59   2              tmr0_cnt = 0;
-  60   2      
-  61   2      #if USE_MY_DEBUG
-                      printf("recv time out\n");
+                      // printf("recv time out\n");
               #endif
-  64   2          }
-  65   1      
-  66   1          // printf("tmr0 cnt %d\n", (u16)tmr0_cnt);
-  67   1      }
-  68          
-  69          void UART1_IRQHandler(void) interrupt UART1_IRQn
-  70          {
-  71   1          u8 uart_data = 0;
-  72   1      
-  73   1          // 进入中断设置IP，不可删除
-  74   1          __IRQnIPnPush(UART1_IRQn);
+  56   2              memset(&instruction, 0xFF, sizeof(instruction));
+  57   2              memset(aip650_show_buff, 0x00, ARRAY_SIZE(aip650_show_buff));
+  58   2              aip650_show_refresh();
+  59   2              flag_cur_recv_status = CUR_RECV_STATUS_NONE;
+  60   2              tmr0_disable();
+  61   2              tmr0_cnt = 0;
+  62   2          }
+  63   1      
+  64   1          // printf("tmr0 cnt %d\n", (u16)tmr0_cnt);
+  65   1      }
+  66          
+  67          void UART1_IRQHandler(void) interrupt UART1_IRQn
+  68          {
+  69   1          u8 uart_data = 0;
+  70   1      
+  71   1          // 进入中断设置IP，不可删除
+  72   1          __IRQnIPnPush(UART1_IRQn);
+  73   1      
+  74   1          // ---------------- 用户函数处理 -------------------
   75   1      
-  76   1          // ---------------- 用户函数处理 -------------------
-  77   1      
-  78   1          // RX接收完成中断
-  79   1          if (UART1_STA & UART_RX_DONE(0x1))
-  80   1          {
-  81   2              uart_data = UART1_DATA;
-  82   2              tmr0_cnt = 0; // 每次接收到数据，清空超时计数
-  83   2              tmr0_enable();
-  84   2      
-  85   2              if (flag_cur_recv_status == CUR_RECV_STATUS_NONE &&
-  86   2                  uart_data == PROTOCOL_HEAD)
-  87   2              {
-  88   3                  // 协议头
-  89   3                  flag_cur_recv_status = CUR_RECV_STATUS_SEG1;
-  90   3                  // tmr0_cnt = 0;
-  91   3                  // tmr0_enable();
-  92   3              }
-  93   2              else if (flag_cur_recv_status == CUR_RECV_STATUS_SEG1)
-  94   2              {
-  95   3                  // 接收控制数码管1的数据
-  96   3                  instruction.seg1 = uart_data;
-  97   3                  flag_cur_recv_status = CUR_RECV_STATUS_SEG2;
-  98   3              }
-  99   2              else if (flag_cur_recv_status == CUR_RECV_STATUS_SEG2)
- 100   2              {
- 101   3                  // 接收控制数码管2的数据
- 102   3                  instruction.seg2 = uart_data;
- 103   3                  flag_cur_recv_status = CUR_RECV_STATUS_POINT;
- 104   3              }
- 105   2              else if (flag_cur_recv_status == CUR_RECV_STATUS_POINT)
- 106   2              {
- 107   3                  // 接收控制小数点显示的数据
- 108   3                  instruction.point = uart_data;
- 109   3                  flag_cur_recv_status = CUR_RECV_STATUS_LED;
- 110   3              }
- 111   2              else if (flag_cur_recv_status == CUR_RECV_STATUS_LED)
- 112   2              {
- 113   3                  // 接收控制触摸按键对应的LED的数据
- 114   3                  instruction.led = uart_data;
- 115   3                  flag_cur_recv_status = CUR_RECV_STATUS_END;
-C51 COMPILER V9.60.7.0   UART1                                                             11/14/2024 08:58:50 PAGE 3   
+  76   1          // RX接收完成中断
+  77   1          if (UART1_STA & UART_RX_DONE(0x1))
+  78   1          {
+  79   2              uart_data = UART1_DATA;
+  80   2              tmr0_cnt = 0; // 每次接收到数据，清空超时计数
+  81   2              tmr0_enable();
+  82   2      
+  83   2              if (flag_cur_recv_status == CUR_RECV_STATUS_NONE &&
+  84   2                  uart_data == PROTOCOL_HEAD)
+  85   2              {
+  86   3                  // 协议头
+  87   3                  flag_cur_recv_status = CUR_RECV_STATUS_SEG1;
+  88   3                  // tmr0_cnt = 0;
+  89   3                  // tmr0_enable();
+  90   3              }
+  91   2              else if (flag_cur_recv_status == CUR_RECV_STATUS_SEG1)
+  92   2              {
+  93   3                  // 接收控制数码管1的数据
+  94   3                  instruction.seg1 = uart_data;
+  95   3                  flag_cur_recv_status = CUR_RECV_STATUS_SEG2;
+  96   3              }
+  97   2              else if (flag_cur_recv_status == CUR_RECV_STATUS_SEG2)
+  98   2              {
+  99   3                  // 接收控制数码管2的数据
+ 100   3                  instruction.seg2 = uart_data;
+ 101   3                  flag_cur_recv_status = CUR_RECV_STATUS_POINT;
+ 102   3              }
+ 103   2              else if (flag_cur_recv_status == CUR_RECV_STATUS_POINT)
+ 104   2              {
+ 105   3                  // 接收控制小数点显示的数据
+ 106   3                  instruction.point = uart_data;
+ 107   3                  flag_cur_recv_status = CUR_RECV_STATUS_LED;
+ 108   3              }
+ 109   2              else if (flag_cur_recv_status == CUR_RECV_STATUS_LED)
+ 110   2              {
+ 111   3                  // 接收控制触摸按键对应的LED的数据
+ 112   3                  instruction.led = uart_data;
+ 113   3                  flag_cur_recv_status = CUR_RECV_STATUS_END;
+ 114   3              }
+ 115   2              else if (flag_cur_recv_status == CUR_RECV_STATUS_END &&
+C51 COMPILER V9.60.7.0   UART1                                                             12/02/2024 16:50:47 PAGE 3   
 
- 116   3              }
- 117   2              else if (flag_cur_recv_status == CUR_RECV_STATUS_END &&
- 118   2                       uart_data == PROTOCOL_TAIL)
- 119   2              {
- 120   3                  // 协议尾
- 121   3                  flag_cur_recv_status = CUR_RECV_STATUS_COMPLETE; // 表示完成接收
- 122   3                  tmr0_disable();
- 123   3                  tmr0_cnt = 0;
- 124   3              }
- 125   2              else
- 126   2              {
- 127   3                  // 如果接收错误(这里只能检测到第一个字节和最后一个字节的数据错误
+ 116   2                       uart_data == PROTOCOL_TAIL)
+ 117   2              {
+ 118   3                  // 协议尾
+ 119   3                  flag_cur_recv_status = CUR_RECV_STATUS_COMPLETE; // 表示完成接收
+ 120   3                  tmr0_disable();
+ 121   3                  tmr0_cnt = 0;
+ 122   3              }
+ 123   2              else
+ 124   2              {
+ 125   3                  // 如果接收错误(这里只能检测到第一个字节和最后一个字节的数据错误
              -)
- 128   3                  // 切换到对应的状态，由uart1_recv_err_handle()函数处理
- 129   3                  flag_cur_recv_status = CUR_RECV_STATUS_ERR;
- 130   3      
- 131   3                  tmr0_disable();
- 132   3                  tmr0_cnt = 0;
- 133   3      
- 134   3      #if USE_MY_DEBUG
+ 126   3                  // 切换到对应的状态，由uart1_recv_err_handle()函数处理
+ 127   3                  flag_cur_recv_status = CUR_RECV_STATUS_ERR;
+ 128   3      
+ 129   3                  tmr0_disable();
+ 130   3                  tmr0_cnt = 0;
+ 131   3      
+ 132   3      #if USE_MY_DEBUG
                           // printf("recv err\n");
               #endif
- 137   3              }
- 138   2          }
- 139   1      
- 140   1          // 退出中断设置IP，不可删除
- 141   1          __IRQnIPnPop(UART1_IRQn);
- 142   1      }
+ 135   3              }
+ 136   2          }
+ 137   1      
+ 138   1          // 退出中断设置IP，不可删除
+ 139   1          __IRQnIPnPop(UART1_IRQn);
+ 140   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE

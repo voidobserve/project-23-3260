@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/14/2024 08:58:50 PAGE 1   
+C51 COMPILER V9.60.7.0   TK_USER                                                           12/02/2024 16:50:47 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE TK_USER
@@ -31,953 +31,438 @@ line level    source
   20          #include "include.h"
   21          #include "my_config.h"
   22          
-  23          /** @addtogroup Template_Project
-  24           * @{
-  25           */
-  26          
-  27          /* Private typedef -----------------------------------------------------------*/
-  28          /* Private define ------------------------------------------------------------*/
-  29          /* Private macro -------------------------------------------------------------*/
-  30          /* Private variables ---------------------------------------------------------*/
-  31          /* Private function prototypes -----------------------------------------------*/
-  32          /* Private functions ---------------------------------------------------------*/
-  33          
-  34          /**
-  35           * @brief  Touchkey  debug uart init function
-  36           * @param  None
-  37           * @retval None
-  38           */
-  39          // // xdata u16 led_data[1];                           // LEDÏÔÊ¾buff
-  40          // #define LED_DIS_FREQ (1000000 / 16 / 8 / 60 - 1) // Ò»¸öCONµÄÏÔÊ¾Ê±¼ä60Hz    60-1=1M/(LED_COMCON*16*LED
-             -_TIME_CON)
-  41          
-  42          // unsigned int xdata display_data = 0;
-  43          
-  44          /**
-  45           * @brief  µ÷ÊÔ½Ó¿ÚIO³õÊ¼»¯º¯Êý.
-  46           * @param  None
-  47           * @retval None
-  48           */
-  49          #if TK_DEBUG_EN
-              void debug_gpio_config(void)
-              {
-              #if 1
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/14/2024 08:58:50 PAGE 2   
+  23          
+  24          /**
+  25           * @brief __is_double_click() ÅÐ¶ÏÊÇ·ñÓÐË«»÷Í¬Ò»¸ö´¥Ãþ°´¼ü,ÄÚ²¿×î³¤ÑÓÊ±Ê±¼ä£ºDETECT_DOUBLE_CLICK_INTERVAL
+  26           *
+  27           * @param touch_key_id_const
+  28           * @return u8 0--Ã»ÓÐË«»÷Í¬Ò»¸ö´¥Ãþ°´¼ü£¬1--Ë«»÷ÁËÍ¬Ò»¸ö´¥Ãþ°´¼ü
+  29           */
+  30          u8 __is_double_click(const u32 touch_key_id_const)
+  31          {
+  32   1          u8 i = 0;                   // Ñ­»·¼ÆÊýÖµ
+  33   1          volatile u32 touch_key = 0; // ´æ·ÅÃ¿´Î¼ì²âµ½µÄ°´¼ü
+  34   1      
+  35   1          for (; i < DETECT_DOUBLE_CLICK_INTERVAL; i++)
+  36   1          {
+  37   2              delay_ms(1);
+  38   2              __tk_scan();
+  39   2              touch_key = __tk_key_flag;
+  40   2      
+  41   2              if (touch_key_id_const == touch_key)
+  42   2              {
+  43   3                  // Èç¹û¼ì²âµ½ÊÇÍ¬Ò»¸ö°´¼ü°´ÏÂ£¬ËµÃ÷ÊÇË«»÷
+  44   3                  return 1; // Ë«»÷ÁËÍ¬Ò»¸ö´¥Ãþ°´¼ü£¬·µ»Ø1
+  45   3              }
+  46   2          }
+  47   1      
+  48   1          return 0; // Ã»ÓÐË«»÷Í¬Ò»¸ö´¥Ãþ°´¼ü£¬·µ»Ø0
+  49   1      }
+  50          
+  51          enum
+  52          {
+  53              TOUCH_KEY_SCAN_STATUS_NONE,                  // ¿Õ×´Ì¬£¬¼ì²âÊÇ·ñÓÐ°´¼ü°´ÏÂ
+C51 COMPILER V9.60.7.0   TK_USER                                                           12/02/2024 16:50:47 PAGE 2   
 
-                  P2_MD0 &= ~GPIO_P21_MODE_SEL(0x03);
-                  P2_MD0 |= GPIO_P21_MODE_SEL(0x01);
-                  FOUT_S21 = GPIO_FOUT_UART1_TX;
-              #else
-                  P2_MD1 &= ~GPIO_P27_MODE_SEL(0x03);
-                  P2_MD1 |= GPIO_P27_MODE_SEL(0x01);
-                  FOUT_S27 = GPIO_FOUT_UART1_TX;
-              #endif
-              }
-              #endif
+  54              TOUCH_KEY_SCAN_STATUS_IS_DETECT_LOOG_PRESS,  // ÕýÔÚ¼ì²âÊÇ·ñÎª³¤°´£¨Òª¸ú¼ì²â³¤°´×÷Çø·Ö£©
+  55              TOUCH_KEY_SCAN_STATUS_IS_HANDLE_LONG_PRESS,  // ÕýÔÚ´¦Àí³¤°´
+  56              TOUCH_KEY_SCAN_STATUS_IS_HANDLE_HOLD_PRESS,  // ÕýÔÚ´¦Àí³¤°´³ÖÐø£¨²»ËÉÊÖ£©
+  57              TOUCH_KEY_SCAN_STATUS_IS_HANDLE_SHORT_PRESS, // ÕýÔÚ´¦Àí¶Ì°´
+  58          
+  59              TOUCH_KEY_SCAN_STATUS_IS_WAIT_SHORT_PRESS_RELEASE, // ÕýÔÚµÈ´ý¶Ì°´ËÉ¿ª
+  60              TOUCH_KEY_SCAN_STATUS_IS_WAIT_LONG_PRESS_RELEASE,  // ÕýÔÚµÈ´ý³¤°´ËÉ¿ª
+  61              TOUCH_KEY_SCAN_STATUS_IS_END,                      // ÊÕÎ²´¦Àí
+  62          };
   63          
-  64          #if 0
-              /**
-               * @brief  ÓÃ»§´úÂëÑ­»·Ö´ÐÐº¯Êý½Ó¿Ú.£¨´¥Ãþ°´¼üÉ¨Ãèº¯Êý½Ó¿Ú£©
-               * @param  None
-               * @retval None
-               */
-              #define DETECT_DOUBLE_CLICK_INTERVAL (100) // ·¢ËÍ¼ä¸ô
-              void user_handle(void)
-              {
-                  volatile unsigned long int touch_key = __tk_key_flag; // __tk_key_flagµ¥´Î°´¼ü±êÖ¾
-              
-                  static volatile unsigned long int KeyOld = 0; // ÓÃÓÚ´æ·Å³¤°´Ê±£¬¶ÔÓ¦µÄ°´¼ü
-              
-                  // ÊÇ·ñ³¤°´µÄ±êÖ¾£¬0--·ñ£¬1--ÊÇ
-                  // ÐèÒª±£´æ³¤°´µÄ×´Ì¬£¬±íÊ¾¶¨Ê±Æ÷Ò»Ö±ÔÚ·¢ËÍ¼üÖµ
-                  static unsigned char flag_is_long_press = 0; // ÉÏÒ»´ÎÉ¨Ãèµ½µÄ°´¼üÊÇ·ñÎª³¤°´µÄ±êÖ¾
-              
-                  static volatile u32 cnt = 0; // ³¤°´¼ÆÊýÖµ
-              
-                  u32 i = 0; // Ñ­»·¼ÆÊýÖµ
-              
-                  u16 send_data = 0; // Òª·¢ËÍµÄ´øÓÐ¼üÖµµÄÊý¾Ý
-              
-                  if (touch_key && 0 == flag_is_long_press && cnt < TK_LONG_KEY_TIME) // Èç¹ûÓÐ°´¼ü°´ÏÂ£¨²¢ÇÒÖ®Ç°É¨Ãèµ½µ
-             -Ä²»ÊÇ³¤°´£©
-                  {
-                      // Í¨¹ýÑ­»·ÅÐ¶ÏÊÇ·ñÎª³¤°´
-                      for (i = 0; i < 500000; i++) // Êµ¼ÊÉÏÓÃ²»µ½ÕâÃ´´óµÄÊý×Ö£¬µ½ÁËÉè¶¨µÄ³¤°´Ê±¼ä¾Í»áÍË³ö
-                      {
-                          // °´¼üÉ¨Ãèº¯Êý£¬Ê¹ÓÃÁË¿âÀïÃæµÄ½Ó¿Ú£¨±ÕÔ´¿â£©
-                          // Õâ¸öº¯Êý»á¸üÐÂ__tk_key_flagµÄÖµ
-                          delay_ms(10);
-                          __tk_scan();
-              
-                          if (touch_key == __tk_key_flag)
-                          {
-                              // Èç¹û°´¼ü¼üÖµÒ»ÖÂ£¬ËµÃ÷°´¼üÒ»Ö±±»°´ÏÂ£¬Î´ËÉ¿ª
-                              cnt++;
-                          }
-                          else
-                          {
-                              // Èç¹û°´¼ü¼üÖµ²»Ò»ÖÂ»òÊÇËÉ¿ªÁË°´¼ü
-                              // cnt = 0;
-                              break;
-                          }
-                          
-                          if (cnt > TK_LONG_KEY_TIME) // Èç¹û³¤°´³¬¹ýÁËÕâÀïÉèÖÃµÄÊ±¼ä
-                          {
-                              flag_is_long_press = 1; // ±ê¼ÇÎª³¤°´
-                              break;
-                          }
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/14/2024 08:58:50 PAGE 3   
+  64          static volatile u8 touch_key_scan_status = 0; // ·Ç×èÈûµÄ°´¼üÉ¨Ãèº¯ÊýÖÐ£¬Ê¹ÓÃµÄ×´Ì¬»ú
+  65          
+  66          // ·Ç×èÈûµÄ°´¼üÉ¨Ãèº¯Êý
+  67          void touch_key_scan(void)
+  68          {
+  69   1          volatile u32 touch_key = 0;             // __tk_key_flag µ¥´Î°´¼ü±êÖ¾
+  70   1          static u32 touch_key_last = 0;          // ÓÃÓÚ´æ·Å³¤°´Ê±£¬¶ÔÓ¦µÄ°´¼ü
+  71   1          static volatile u32 touch_time_cnt = 0; // ³¤°´¼ÆÊýÖµ
+  72   1      
+  73   1          /* °´¼üÉ¨Ãèº¯Êý */
+  74   1          __tk_scan();               // Ê¹ÓÃÁË¿âÀïÃæµÄ½Ó¿Ú£¨±ÕÔ´¿â£©
+  75   1          touch_key = __tk_key_flag; // __tk_key_flag µ¥´Î°´¼ü±êÖ¾
+  76   1      
+  77   1          if (TOUCH_KEY_SCAN_STATUS_NONE == touch_key_scan_status) // Î´¼ì²âµ½°´¼üÊ±
+  78   1          {
+  79   2              // Èç¹ûÓÐ°´¼ü°´ÏÂ£¨²¢ÇÒÖ®Ç°É¨Ãèµ½µÄ²»ÊÇ³¤°´£©
+  80   2      
+  81   2              // ÅÐ¶ÏÊÇ·ñÎª³¤°´£º
+  82   2      
+  83   2              if (touch_key_last == 0) // Èç¹ûÖ®Ç°Î´¼ì²âµ½°´¼ü
+  84   2              {
+  85   3                  touch_key_last = touch_key;
+  86   3              }
+  87   2              else if (touch_key_last == touch_key)
+  88   2              {
+  89   3                  // Èç¹ûÉÏ´Î¼ì²âµ½µÄ°´¼üÓë´Ë´ÎµÄ°´¼üÏàµÈ£¬ËµÃ÷°´¼ü»¹Î´ËÉ¿ª
+  90   3                  touch_time_cnt += (1 + ONE_CYCLE_TIME_MS);
+  91   3      
+  92   3                  if (touch_time_cnt >= LONG_PRESS_TIME_THRESHOLD_MS)
+  93   3                  {
+  94   4                      // Èç¹û³¤°´³¬¹ýÁËÉèÖÃµÄ³¤°´Ê±¼ä
+  95   4                      // Ìø×ªµ½³¤°´´¦Àí
+  96   4                      touch_time_cnt = 0; // Çå³ý³¤°´Ê±¼ä¼ÆÊý
+  97   4                      // printf("long press\n");
+  98   4                      touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_HANDLE_LONG_PRESS;
+  99   4                  }
+ 100   3              }
+ 101   2              else
+ 102   2              {
+ 103   3                  // Èç¹ûÉÏ´Î¼ì²âµ½µÄ°´¼üÓë´Ë´ÎµÄ°´¼ü²»ÏàµÈ£¬²¢ÇÒÉÏ´Î¼ì²âµ½µÄ°´¼ü²»µÈÓÚ0
+ 104   3                  // touch_time_cnt = 0; // Çå³ý³¤°´Ê±¼ä¼ÆÊý£¨¿ÉÒÔÁôµ½ÊÕÎ²´¦Àí£©
+ 105   3      
+ 106   3                  // Ìø×ªµ½¶Ì°´´¦Àí
+ 107   3                  touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_HANDLE_SHORT_PRESS;
+ 108   3      
+ 109   3                  // printf("short press\n");
+ 110   3              }
+ 111   2      
+ 112   2              delay_ms(1); //
+ 113   2          }
+ 114   1      
+ 115   1          if (TOUCH_KEY_SCAN_STATUS_IS_HANDLE_SHORT_PRESS == touch_key_scan_status)
+C51 COMPILER V9.60.7.0   TK_USER                                                           12/02/2024 16:50:47 PAGE 3   
 
-                      }
-              
-                      if (cnt > TK_LONG_KEY_TIME)
-                      {
-                          flag_is_long_press = 1; // ±ê¼ÇÎª³¤°´
-                      }
-                      else
-                      {
-                          // Èç¹ûÊÇ¶Ì°´
-                          cnt = 0; // Çå³ý³¤°´µÄ¼ÆÊýÖµ
-              
-                          // ÅÐ¶Ïµ±Ç°´¥ÃþµÄ¼üÖµ£¬×ö¶ÔÓ¦µÄ²Ù×÷
-                          if (TK_CH24_VALIB == touch_key)
-                          {
-                              // Èç¹ûKEY1±»´¥Ãþ
-                              for (i = 0; i < DETECT_DOUBLE_CLICK_INTERVAL; i++)
-                              {
-                                  delay_ms(1);
-                                  __tk_scan();
-                                  touch_key = __tk_key_flag;
-              
-                                  if (TK_CH24_VALIB == touch_key)
-                                  {
-                                      // Èç¹û¼ì²âµ½ÊÇÍ¬Ò»¸ö°´¼ü°´ÏÂ£¬ËµÃ÷ÊÇË«»÷
-                                      // µÈ´ýÊÖÖ¸ËÉ¿ª°´¼ü£¬²»È»·¢ËÍÍê´øÓÐË«»÷×´Ì¬µÄ¼üÖµºó»áÔÙ·¢ËÍÒ»´Îµ¥»÷×´Ì¬µÄ¼üÖµ
-                                      while (0 != touch_key)
-                                      {
-                                          __tk_scan();
-                                          touch_key = __tk_key_flag;
-                                      }
-              #if USE_MY_DEBUG
-                                      printf("k1 double press\n");
-              #endif
-                                      send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY1);
-                                      return;
-                                  }
-                              }
-              
-              // Èç¹û²»ÊÇÍ¬Ò»¸ö°´¼ü°´ÏÂ»òÊÇÃ»ÓÐÖµ£¬ËµÃ÷ÊÇ¶Ì°´
-              #if USE_MY_DEBUG
-                              printf("k1 press\n");
-              #endif
-                              send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY1); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
-                          }
-                          else if (TK_CH25_VALIB == touch_key)
-                          {
-                              // Èç¹ûKEY2±»´¥Ãþ
-                              for (i = 0; i < DETECT_DOUBLE_CLICK_INTERVAL; i++)
-                              {
-                                  delay_ms(1);
-                                  __tk_scan();
-                                  touch_key = __tk_key_flag;
-              
-                                  if (TK_CH25_VALIB == touch_key)
-                                  {
-                                      // Èç¹û¼ì²âµ½ÊÇÍ¬Ò»¸ö°´¼ü°´ÏÂ£¬ËµÃ÷ÊÇË«»÷
-                                      // µÈ´ýÊÖÖ¸ËÉ¿ª°´¼ü£¬²»È»·¢ËÍÍê´øÓÐË«»÷×´Ì¬µÄ¼üÖµºó»áÔÙ·¢ËÍÒ»´Îµ¥»÷×´Ì¬µÄ¼üÖµ
-                                      while (0 != touch_key)
-                                      {
-                                          __tk_scan();
-                                          touch_key = __tk_key_flag;
-                                      }
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/14/2024 08:58:50 PAGE 4   
-
-              #if USE_MY_DEBUG
-                                      printf("k2 double press\n");
-              #endif
-                                      send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY2);
-                                      return;
-                                  }
-                              }
-              
-              // Èç¹û²»ÊÇÍ¬Ò»¸ö°´¼ü°´ÏÂ»òÊÇÃ»ÓÐÖµ£¬ËµÃ÷ÊÇ¶Ì°´
-              #if USE_MY_DEBUG
-                              printf("k2 press\n");
-              #endif
-                              send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY2); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
-                          }
-                          else if (TK_CH23_VALIB == touch_key)
-                          {
-                              // Èç¹ûKEY3±»´¥Ãþ
-                              for (i = 0; i < DETECT_DOUBLE_CLICK_INTERVAL; i++)
-                              {
-                                  delay_ms(1);
-                                  __tk_scan();
-                                  touch_key = __tk_key_flag;
-              
-                                  if (TK_CH23_VALIB == touch_key)
-                                  {
-                                      // Èç¹û¼ì²âµ½ÊÇÍ¬Ò»¸ö°´¼ü°´ÏÂ£¬ËµÃ÷ÊÇË«»÷
-                                      // µÈ´ýÊÖÖ¸ËÉ¿ª°´¼ü£¬²»È»·¢ËÍÍê´øÓÐË«»÷×´Ì¬µÄ¼üÖµºó»áÔÙ·¢ËÍÒ»´Îµ¥»÷×´Ì¬µÄ¼üÖµ
-                                      while (0 != touch_key)
-                                      {
-                                          __tk_scan();
-                                          touch_key = __tk_key_flag;
-                                      }
-              
-              #if USE_MY_DEBUG
-                                      printf("k3 double press\n");
-              #endif
-                                      send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY3);
-                                      return;
-                                  }
-                              }
-              
-                              // Èç¹û²»ÊÇÍ¬Ò»¸ö°´¼ü°´ÏÂ»òÊÇÃ»ÓÐÖµ£¬ËµÃ÷ÊÇ¶Ì°´
-              #if USE_MY_DEBUG
-                              printf("k3 press\n");
-              #endif
-                              send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY3); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
-                          }
-                          else if (TK_CH17_VALIB == touch_key)
-                          {
-                              // Èç¹ûKEY4±»´¥Ãþ
-                              for (i = 0; i < DETECT_DOUBLE_CLICK_INTERVAL; i++)
-                              {
-                                  delay_ms(1);
-                                  __tk_scan();
-                                  touch_key = __tk_key_flag;
-              
-                                  if (TK_CH17_VALIB == touch_key)
-                                  {
-                                      // Èç¹û¼ì²âµ½ÊÇÍ¬Ò»¸ö°´¼ü°´ÏÂ£¬ËµÃ÷ÊÇË«»÷
-                                      // µÈ´ýÊÖÖ¸ËÉ¿ª°´¼ü£¬²»È»·¢ËÍÍê´øÓÐË«»÷×´Ì¬µÄ¼üÖµºó»áÔÙ·¢ËÍÒ»´Îµ¥»÷×´Ì¬µÄ¼üÖµ
-                                      while (0 != touch_key)
-                                      {
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/14/2024 08:58:50 PAGE 5   
-
-                                          __tk_scan();
-                                          touch_key = __tk_key_flag;
-                                      }
-              
-              #if USE_MY_DEBUG
-                                      printf("k4 double press\n");
-              #endif
-                                      send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY4);
-                                      return;
-                                  }
-                              }
-              
-                              // Èç¹û²»ÊÇÍ¬Ò»¸ö°´¼ü°´ÏÂ»òÊÇÃ»ÓÐÖµ£¬ËµÃ÷ÊÇ¶Ì°´
-              #if USE_MY_DEBUG
-                              printf("k4 press\n");
-              #endif
-                              send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY4); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
-                          }
-                          else if (TK_CH15_VALIB == touch_key)
-                          {
-                              // Èç¹ûKEY5±»´¥Ãþ
-                              for (i = 0; i < DETECT_DOUBLE_CLICK_INTERVAL; i++)
-                              {
-                                  delay_ms(1);
-                                  __tk_scan();
-                                  touch_key = __tk_key_flag;
-              
-                                  if (TK_CH15_VALIB == touch_key)
-                                  {
-                                      // Èç¹û¼ì²âµ½ÊÇÍ¬Ò»¸ö°´¼ü°´ÏÂ£¬ËµÃ÷ÊÇË«»÷
-                                      // µÈ´ýÊÖÖ¸ËÉ¿ª°´¼ü£¬²»È»·¢ËÍÍê´øÓÐË«»÷×´Ì¬µÄ¼üÖµºó»áÔÙ·¢ËÍÒ»´Îµ¥»÷×´Ì¬µÄ¼üÖµ
-                                      while (0 != touch_key)
-                                      {
-                                          __tk_scan();
-                                          touch_key = __tk_key_flag;
-                                      }
-              #if USE_MY_DEBUG
-                                      printf("k5 double press\n");
-              #endif
-                                      send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY5);
-                                      return;
-                                  }
-                              }
-              
-              // Èç¹û²»ÊÇÍ¬Ò»¸ö°´¼ü°´ÏÂ»òÊÇÃ»ÓÐÖµ£¬ËµÃ÷ÊÇ¶Ì°´
-              #if USE_MY_DEBUG
-                              printf("k5 press\n");
-              #endif
-                              send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY5); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
-                          }
-                      }
-                  }
-              
-                  if (1 == flag_is_long_press && 0 != touch_key)
-                  {
-                      KeyOld = touch_key;
-              
-                      // Èç¹ûÖ®Ç°ÊÇ³¤°´£¬ÏÖÔÚ»¹Î´ËÉ¿ª
-                      // ÅÐ¶Ïµ±Ç°´¥ÃþµÄ¼üÖµ£¬×ö¶ÔÓ¦µÄ²Ù×÷
-                      if (TK_CH24_VALIB == touch_key)
-                      {
-                          // Èç¹ûKEY1±»´¥Ãþ
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/14/2024 08:58:50 PAGE 6   
-
-                          if (cnt >= TK_LONG_KEY_TIME && cnt < 90)
-                          {
-              #if USE_MY_DEBUG
-                              printf("k1 long press\n");
-              #endif
-                              send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY1);
-                          }
-              
-                          // Èô»¹²»ËÉ¿ªÊÖ£¬ÔòÃ¿¸ô150ms·¢ËÍÒ»´Î´øÓÐ³ÖÐø×´Ì¬ÐÅÏ¢µÄ¼üÖµÐÅºÅ
-                          while (0 != touch_key)
-                          {
-                              delay_ms(10);
-                              cnt++;
-                              __tk_scan();
-                              touch_key = __tk_key_flag;
-              
-                              if (cnt >= 87) // Ô­±¾ÊÇÌî90µÄ£¬µ«ÊÇÈí¼þÑÓÊ±ÓÐÎó²î£¬ÕâÀïÖ»ÄÜÂýÂýµ÷ÊÔ
-                              {
-                                  cnt = TK_LONG_KEY_TIME;
-              #if USE_MY_DEBUG
-                                  printf("k1 continue press\n");
-              #endif
-                                  send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY1);
-                              }
-                          }
-                      }
-                      else if (TK_CH25_VALIB == touch_key)
-                      {
-                          // Èç¹ûKEY2±»´¥Ãþ
-                          if (cnt >= TK_LONG_KEY_TIME && cnt < 90)
-                          {
-              #if USE_MY_DEBUG
-                              printf("k2 long press\n");
-              #endif
-                              send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY2);
-                          }
-              
-                          // Èô»¹²»ËÉ¿ªÊÖ£¬ÔòÃ¿¸ô150ms·¢ËÍÒ»´Î´øÓÐ³ÖÐø×´Ì¬ÐÅÏ¢µÄ¼üÖµÐÅºÅ
-                          while (0 != touch_key)
-                          {
-                              delay_ms(10);
-                              cnt++;
-                              __tk_scan();
-                              touch_key = __tk_key_flag;
-              
-                              if (cnt >= 87) // Ô­±¾ÊÇÌî90µÄ£¬µ«ÊÇÈí¼þÑÓÊ±ÓÐÎó²î£¬ÕâÀïÖ»ÄÜÂýÂýµ÷ÊÔ
-                              {
-                                  cnt = TK_LONG_KEY_TIME;
-              #if USE_MY_DEBUG
-                                  printf("k2 continue press\n");
-              #endif
-                                  send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY2);
-                              }
-                          }
-              
-                          // display_data ^= 0x0200; // ¶ÔÓ¦µÄLED×´Ì¬È¡·´£¬ºóÃæ»áµ÷ÓÃled_display()Ë¢ÐÂ
-                          // led_display();          // LED×´Ì¬¸üÐÂÏÔÊ¾
-                      }
-                      else if (TK_CH23_VALIB == touch_key)
-                      {
-                          // Èç¹ûKEY3±»´¥Ãþ
-                          if (cnt >= TK_LONG_KEY_TIME && cnt < 90)
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/14/2024 08:58:50 PAGE 7   
-
-                          {
-              #if USE_MY_DEBUG
-                              printf("k3 long press\n");
-              #endif
-                              send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY3);
-                          }
-              
-                          // Èô»¹²»ËÉ¿ªÊÖ£¬ÔòÃ¿¸ô150ms·¢ËÍÒ»´Î´øÓÐ³ÖÐø×´Ì¬ÐÅÏ¢µÄ¼üÖµÐÅºÅ
-                          while (0 != touch_key)
-                          {
-                              delay_ms(10);
-                              cnt++;
-                              __tk_scan();
-                              touch_key = __tk_key_flag;
-              
-                              if (cnt >= 87) // Ô­±¾ÊÇÌî90µÄ£¬µ«ÊÇÈí¼þÑÓÊ±ÓÐÎó²î£¬ÕâÀïÖ»ÄÜÂýÂýµ÷ÊÔ
-                              {
-                                  cnt = TK_LONG_KEY_TIME;
-              #if USE_MY_DEBUG
-                                  printf("k3 continue press\n");
-              #endif
-                                  send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY3);
-                              }
-                          }
-                      }
-                      else if (TK_CH17_VALIB == touch_key)
-                      {
-                          // Èç¹ûKEY4±»´¥Ãþ
-                          if (cnt >= TK_LONG_KEY_TIME && cnt < 90)
-                          {
-                              // display_data ^= 0x0800; // ¶ÔÓ¦µÄLED×´Ì¬È¡·´£¬ºóÃæ»áµ÷ÓÃled_display()Ë¢ÐÂ
-                              // led_display();          // LED×´Ì¬¸üÐÂÏÔÊ¾
-              #if USE_MY_DEBUG
-                              printf("k4 long press\n");
-              #endif
-                              send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY4);
-                          }
-              
-                          // Èô»¹²»ËÉ¿ªÊÖ£¬ÔòÃ¿¸ô150ms·¢ËÍÒ»´Î´øÓÐ³ÖÐø×´Ì¬ÐÅÏ¢µÄ¼üÖµÐÅºÅ
-                          while (0 != touch_key)
-                          {
-                              delay_ms(10);
-                              cnt++;
-                              __tk_scan();
-                              touch_key = __tk_key_flag;
-              
-                              if (cnt >= 87) // Ô­±¾ÊÇÌî90µÄ£¬µ«ÊÇÈí¼þÑÓÊ±ÓÐÎó²î£¬ÕâÀïÖ»ÄÜÂýÂýµ÷ÊÔ
-                              {
-                                  cnt = TK_LONG_KEY_TIME;
-              #if USE_MY_DEBUG
-                                  printf("k4 continue press\n");
-              #endif
-                                  send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY4);
-                              }
-                          }
-              
-                          // display_data ^= 0x0800; // ¶ÔÓ¦µÄLED×´Ì¬È¡·´£¬ºóÃæ»áµ÷ÓÃled_display()Ë¢ÐÂ
-                          // led_display();          // LED×´Ì¬¸üÐÂÏÔÊ¾
-                      }
-                      else if (TK_CH15_VALIB == touch_key)
-                      {
-                          // Èç¹ûKEY5±»´¥Ãþ
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/14/2024 08:58:50 PAGE 8   
-
-                          if (cnt >= TK_LONG_KEY_TIME && cnt < 90)
-                          {
-                              // display_data ^= 0x0800; // ¶ÔÓ¦µÄLED×´Ì¬È¡·´£¬ºóÃæ»áµ÷ÓÃled_display()Ë¢ÐÂ
-                              // led_display();          // LED×´Ì¬¸üÐÂÏÔÊ¾
-              #if USE_MY_DEBUG
-                              printf("k5 long press\n");
-              #endif
-                              send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY5);
-                          }
-              
-                          // Èô»¹²»ËÉ¿ªÊÖ£¬ÔòÃ¿¸ô150ms·¢ËÍÒ»´Î´øÓÐ³ÖÐø×´Ì¬ÐÅÏ¢µÄ¼üÖµÐÅºÅ
-                          while (0 != touch_key)
-                          {
-                              delay_ms(10);
-                              cnt++;
-                              __tk_scan();
-                              touch_key = __tk_key_flag;
-              
-                              if (cnt >= 87) // Ô­±¾ÊÇÌî90µÄ£¬µ«ÊÇÈí¼þÑÓÊ±ÓÐÎó²î£¬ÕâÀïÖ»ÄÜÂýÂýµ÷ÊÔ
-                              {
-                                  cnt = TK_LONG_KEY_TIME;
-              #if USE_MY_DEBUG
-                                  printf("k5 continue press\n");
-              #endif
-                                  send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY5);
-                              }
-                          }
-              
-                          // display_data ^= 0x0800; // ¶ÔÓ¦µÄLED×´Ì¬È¡·´£¬ºóÃæ»áµ÷ÓÃled_display()Ë¢ÐÂ
-                          // led_display();          // LED×´Ì¬¸üÐÂÏÔÊ¾
-                      }
-                  }
-                  else if (1 == flag_is_long_press && 0 == touch_key)
-                  {
-                      // Èç¹ûÖ®Ç°ÊÇ³¤°´£¬ÏÖÔÚÈ´ËÉ¿ªÁË°´¼ü
-                      switch (KeyOld)
-                      {
-                      case TK_CH24_VALIB:
-              #if USE_MY_DEBUG
-                          printf("k1 long press loose\n");
-              #endif
-                          send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY1);
-                          break;
-              
-                      case TK_CH25_VALIB:
-              #if USE_MY_DEBUG
-                          printf("k2 long press loose\n");
-              #endif
-                          send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY2);
-                          break;
-              
-                      case TK_CH23_VALIB:
-              #if USE_MY_DEBUG
-                          printf("k3 long press loose\n");
-              #endif
-                          send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY3);
-                          break;
-              
-                      case TK_CH17_VALIB:
-              #if USE_MY_DEBUG
-                          printf("k4 long press loose\n");
-              #endif
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/14/2024 08:58:50 PAGE 9   
-
-                          send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY4);
-                          break;
-              
-                      case TK_CH15_VALIB:
-              #if USE_MY_DEBUG
-                          printf("k5 long press loose\n");
-              #endif
-                          send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY5);
-                          break;
-                      }
-              
-                      flag_is_long_press = 0; // Çå³ý±êÖ¾Î»
-                      cnt = 0;
-                      KeyOld = 0;
-                  }
-              
-              #if 0
-                  if (1 == __tk_long_key_flag) // Èç¹û³¤°´°´¼ü£¨Õâ¸ö¹¦ÄÜ²âÊÔ·¢ÏÖ²»ÐÐ£¬²»ÄÜÓÃ£©
-                  {
-                      __tk_long_key_flag = 0;
-              
-                      // ÕâÀï¿ÉÒÔ×Ô¼º´¦Àí£¬Ìí¼Ó×Ô¼ºÐèÒªµÄ¹¦ÄÜ
-              
-                      P11 = 0;
-                  }
-              #endif
-              }
-              #endif
- 514          
- 515          
- 516          
- 517          /**
- 518           * @brief __is_double_click() ÅÐ¶ÏÊÇ·ñÓÐË«»÷Í¬Ò»¸ö´¥Ãþ°´¼ü,ÄÚ²¿×î³¤ÑÓÊ±Ê±¼ä£ºDETECT_DOUBLE_CLICK_INTERVAL
- 519           *
- 520           * @param touch_key_id_const
- 521           * @return u8 0--Ã»ÓÐË«»÷Í¬Ò»¸ö´¥Ãþ°´¼ü£¬1--Ë«»÷ÁËÍ¬Ò»¸ö´¥Ãþ°´¼ü
- 522           */
- 523          u8 __is_double_click(const u32 touch_key_id_const)
- 524          {
- 525   1          u8 i = 0;                   // Ñ­»·¼ÆÊýÖµ
- 526   1          volatile u32 touch_key = 0; // ´æ·ÅÃ¿´Î¼ì²âµ½µÄ°´¼ü
- 527   1      
- 528   1          for (; i < DETECT_DOUBLE_CLICK_INTERVAL; i++)
- 529   1          {
- 530   2              delay_ms(1);
- 531   2              __tk_scan();
- 532   2              touch_key = __tk_key_flag;
- 533   2      
- 534   2              if (touch_key_id_const == touch_key)
- 535   2              {
- 536   3                  // Èç¹û¼ì²âµ½ÊÇÍ¬Ò»¸ö°´¼ü°´ÏÂ£¬ËµÃ÷ÊÇË«»÷
- 537   3                  return 1; // Ë«»÷ÁËÍ¬Ò»¸ö´¥Ãþ°´¼ü£¬·µ»Ø1
- 538   3              }
- 539   2          }
- 540   1      
- 541   1          return 0; // Ã»ÓÐË«»÷Í¬Ò»¸ö´¥Ãþ°´¼ü£¬·µ»Ø0
- 542   1      }
- 543          
- 544          enum
- 545          {
- 546              TOUCH_KEY_SCAN_STATUS_NONE,                  // ¿Õ×´Ì¬£¬¼ì²âÊÇ·ñÓÐ°´¼ü°´ÏÂ
- 547              TOUCH_KEY_SCAN_STATUS_IS_DETECT_LOOG_PRESS,  // ÕýÔÚ¼ì²âÊÇ·ñÎª³¤°´£¨Òª¸ú¼ì²â³¤°´×÷Çø·Ö£©
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/14/2024 08:58:50 PAGE 10  
-
- 548              TOUCH_KEY_SCAN_STATUS_IS_HANDLE_LONG_PRESS,  // ÕýÔÚ´¦Àí³¤°´
- 549              TOUCH_KEY_SCAN_STATUS_IS_HANDLE_HOLD_PRESS,  // ÕýÔÚ´¦Àí³¤°´³ÖÐø£¨²»ËÉÊÖ£©
- 550              TOUCH_KEY_SCAN_STATUS_IS_HANDLE_SHORT_PRESS, // ÕýÔÚ´¦Àí¶Ì°´
- 551          
- 552              TOUCH_KEY_SCAN_STATUS_IS_WAIT_SHORT_PRESS_RELEASE, // ÕýÔÚµÈ´ý¶Ì°´ËÉ¿ª
- 553              TOUCH_KEY_SCAN_STATUS_IS_WAIT_LONG_PRESS_RELEASE,  // ÕýÔÚµÈ´ý³¤°´ËÉ¿ª
- 554              TOUCH_KEY_SCAN_STATUS_IS_END,                      // ÊÕÎ²´¦Àí
- 555          };
- 556          
- 557          static volatile u8 touch_key_scan_status = 0; // ·Ç×èÈûµÄ°´¼üÉ¨Ãèº¯ÊýÖÐ£¬Ê¹ÓÃµÄ×´Ì¬»ú
- 558          
- 559          // ·Ç×èÈûµÄ°´¼üÉ¨Ãèº¯Êý
- 560          void touch_key_scan(void)
- 561          {
- 562   1          volatile u32 touch_key = 0;             // __tk_key_flag µ¥´Î°´¼ü±êÖ¾
- 563   1          static u32 touch_key_last = 0;          // ÓÃÓÚ´æ·Å³¤°´Ê±£¬¶ÔÓ¦µÄ°´¼ü
- 564   1          static volatile u32 touch_time_cnt = 0; // ³¤°´¼ÆÊýÖµ
- 565   1      
- 566   1          /* °´¼üÉ¨Ãèº¯Êý */
- 567   1          __tk_scan();               // Ê¹ÓÃÁË¿âÀïÃæµÄ½Ó¿Ú£¨±ÕÔ´¿â£©
- 568   1          touch_key = __tk_key_flag; // __tk_key_flag µ¥´Î°´¼ü±êÖ¾
- 569   1      
- 570   1          if (TOUCH_KEY_SCAN_STATUS_NONE == touch_key_scan_status) // Î´¼ì²âµ½°´¼üÊ±
- 571   1          {
- 572   2              // Èç¹ûÓÐ°´¼ü°´ÏÂ£¨²¢ÇÒÖ®Ç°É¨Ãèµ½µÄ²»ÊÇ³¤°´£©
- 573   2              // if (touch_key && touch_time_cnt < LONG_PRESS_TIME_THRESHOLD_MS)
- 574   2              // if (touch_key)
- 575   2              // if (touch_key_last != touch_key && touch_key != 0)
- 576   2              {
- 577   3                  // ÅÐ¶ÏÊÇ·ñÎª³¤°´£º
- 578   3      
- 579   3                  if (touch_key_last == 0) // Èç¹ûÖ®Ç°Î´¼ì²âµ½°´¼ü
- 580   3                  {
- 581   4                      touch_key_last = touch_key;
- 582   4                  }
- 583   3                  else if (touch_key_last == touch_key)
- 584   3                  {
- 585   4                      // Èç¹ûÉÏ´Î¼ì²âµ½µÄ°´¼üÓë´Ë´ÎµÄ°´¼üÏàµÈ£¬ËµÃ÷°´¼ü»¹Î´ËÉ¿ª
- 586   4                      touch_time_cnt += (1 + ONE_CYCLE_TIME_MS);
- 587   4      
- 588   4                      if (touch_time_cnt >= LONG_PRESS_TIME_THRESHOLD_MS)
- 589   4                      {
- 590   5                          // Èç¹û³¤°´³¬¹ýÁËÉèÖÃµÄ³¤°´Ê±¼ä
- 591   5                          // Ìø×ªµ½³¤°´´¦Àí
- 592   5                          touch_time_cnt = 0; // Çå³ý³¤°´Ê±¼ä¼ÆÊý
- 593   5                          // printf("long press\n");
- 594   5                          touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_HANDLE_LONG_PRESS;
- 595   5                      }
- 596   4                  }
- 597   3                  else
- 598   3                  {
- 599   4                      // Èç¹ûÉÏ´Î¼ì²âµ½µÄ°´¼üÓë´Ë´ÎµÄ°´¼ü²»ÏàµÈ£¬²¢ÇÒÉÏ´Î¼ì²âµ½µÄ°´¼ü²»µÈÓÚ0
- 600   4                      // touch_time_cnt = 0; // Çå³ý³¤°´Ê±¼ä¼ÆÊý£¨¿ÉÒÔÁôµ½ÊÕÎ²´¦Àí£©
- 601   4      
- 602   4                      // Ìø×ªµ½¶Ì°´´¦Àí
- 603   4                      touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_HANDLE_SHORT_PRESS;
- 604   4      
- 605   4                      // printf("short press\n");
- 606   4                  }
- 607   3      
- 608   3                  delay_ms(1); //
- 609   3              }
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/14/2024 08:58:50 PAGE 11  
-
- 610   2          }
- 611   1      
- 612   1          if (TOUCH_KEY_SCAN_STATUS_IS_HANDLE_SHORT_PRESS == touch_key_scan_status)
- 613   1          {
- 614   2              // Èç¹ûÊÇÕýÔÚ´¦Àí¶Ì°´
- 615   2              bit flag_is_double_click = 0; // ±êÖ¾Î»£¬ÊÇ·ñÓÐ°´¼üË«»÷
- 616   2      
- 617   2              if (TOUCH_KEY_ID_1 == touch_key_last)
- 618   2              {
- 619   3                  // Èç¹ûKEY1±»´¥Ãþ
- 620   3                  flag_is_double_click = __is_double_click(touch_key_last);
- 621   3                  if (flag_is_double_click)
- 622   3                  {
- 623   4                      // Èç¹ûÓÐ°´¼üË«»÷
- 624   4      #if USE_MY_DEBUG
+ 116   1          {
+ 117   2              // Èç¹ûÊÇÕýÔÚ´¦Àí¶Ì°´
+ 118   2              bit flag_is_double_click = 0; // ±êÖ¾Î»£¬ÊÇ·ñÓÐ°´¼üË«»÷
+ 119   2      
+ 120   2              if (TOUCH_KEY_ID_1 == touch_key_last)
+ 121   2              {
+ 122   3                  // Èç¹ûKEY1±»´¥Ãþ
+ 123   3                  flag_is_double_click = __is_double_click(touch_key_last);
+ 124   3                  if (flag_is_double_click)
+ 125   3                  {
+ 126   4                      // Èç¹ûÓÐ°´¼üË«»÷
+ 127   4      #if USE_MY_DEBUG
                               printf("k1 double press\n");
               #endif
- 627   4                      send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY1); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
- 628   4                  }
- 629   3                  else
- 630   3                  {
- 631   4                      // Èç¹ûÃ»ÓÐ°´¼üË«»÷£¬ËµÃ÷ÊÇ¶Ì°´
- 632   4      #if USE_MY_DEBUG
+ 130   4                      send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY1); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
+ 131   4                  }
+ 132   3                  else
+ 133   3                  {
+ 134   4                      // Èç¹ûÃ»ÓÐ°´¼üË«»÷£¬ËµÃ÷ÊÇ¶Ì°´
+ 135   4      #if USE_MY_DEBUG
                               printf("k1 press\n");
               #endif
- 635   4                      send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY1); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
- 636   4                  }
- 637   3      
- 638   3                  touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_WAIT_SHORT_PRESS_RELEASE; // µÈ´ý°´¼üËÉ¿ª
- 639   3              }
- 640   2              else if (TOUCH_KEY_ID_2 == touch_key_last)
- 641   2              {
- 642   3                  // Èç¹ûKEY2±»´¥Ãþ
- 643   3                  flag_is_double_click = __is_double_click(touch_key_last);
- 644   3                  if (flag_is_double_click)
- 645   3                  {
- 646   4                      // Èç¹ûÓÐ°´¼üË«»÷
- 647   4      #if USE_MY_DEBUG
+ 138   4                      send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY1); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
+ 139   4                  }
+ 140   3      
+ 141   3                  touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_WAIT_SHORT_PRESS_RELEASE; // µÈ´ý°´¼üËÉ¿ª
+ 142   3              }
+ 143   2              else if (TOUCH_KEY_ID_2 == touch_key_last)
+ 144   2              {
+ 145   3                  // Èç¹ûKEY2±»´¥Ãþ
+ 146   3                  flag_is_double_click = __is_double_click(touch_key_last);
+ 147   3                  if (flag_is_double_click)
+ 148   3                  {
+ 149   4                      // Èç¹ûÓÐ°´¼üË«»÷
+ 150   4      #if USE_MY_DEBUG
                               printf("k2 double press\n");
               #endif
- 650   4                      send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY2); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
- 651   4                  }
- 652   3                  else
- 653   3                  {
- 654   4                      // Èç¹ûÃ»ÓÐ°´¼üË«»÷£¬ËµÃ÷ÊÇ¶Ì°´
- 655   4      #if USE_MY_DEBUG
+ 153   4                      send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY2); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
+ 154   4                  }
+ 155   3                  else
+ 156   3                  {
+ 157   4                      // Èç¹ûÃ»ÓÐ°´¼üË«»÷£¬ËµÃ÷ÊÇ¶Ì°´
+ 158   4      #if USE_MY_DEBUG
                               printf("k2 press\n");
               #endif
- 658   4                      send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY2); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
- 659   4                  }
- 660   3      
- 661   3                  touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_WAIT_SHORT_PRESS_RELEASE; // µÈ´ý°´¼üËÉ¿ª
- 662   3              }
- 663   2              else if (TOUCH_KEY_ID_3 == touch_key_last)
- 664   2              {
- 665   3                  // Èç¹ûKEY3±»´¥Ãþ
- 666   3                  flag_is_double_click = __is_double_click(touch_key_last);
- 667   3                  if (flag_is_double_click)
- 668   3                  {
- 669   4                      // Èç¹ûÓÐ°´¼üË«»÷
- 670   4      #if USE_MY_DEBUG
+ 161   4                      send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY2); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
+ 162   4                  }
+ 163   3      
+ 164   3                  touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_WAIT_SHORT_PRESS_RELEASE; // µÈ´ý°´¼üËÉ¿ª
+ 165   3              }
+ 166   2              else if (TOUCH_KEY_ID_3 == touch_key_last)
+ 167   2              {
+ 168   3                  // Èç¹ûKEY3±»´¥Ãþ
+ 169   3                  flag_is_double_click = __is_double_click(touch_key_last);
+ 170   3                  if (flag_is_double_click)
+ 171   3                  {
+ 172   4                      // Èç¹ûÓÐ°´¼üË«»÷
+ 173   4      #if USE_MY_DEBUG
                               printf("k3 double press\n");
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/14/2024 08:58:50 PAGE 12  
-
               #endif
- 673   4                      send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY3); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
- 674   4                  }
- 675   3                  else
- 676   3                  {
- 677   4                      // Èç¹ûÃ»ÓÐ°´¼üË«»÷£¬ËµÃ÷ÊÇ¶Ì°´
- 678   4      #if USE_MY_DEBUG
+ 176   4                      send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY3); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
+ 177   4                  }
+C51 COMPILER V9.60.7.0   TK_USER                                                           12/02/2024 16:50:47 PAGE 4   
+
+ 178   3                  else
+ 179   3                  {
+ 180   4                      // Èç¹ûÃ»ÓÐ°´¼üË«»÷£¬ËµÃ÷ÊÇ¶Ì°´
+ 181   4      #if USE_MY_DEBUG
                               printf("k3 press\n");
               #endif
- 681   4                      send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY3); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
- 682   4                  }
- 683   3      
- 684   3                  touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_WAIT_SHORT_PRESS_RELEASE; // µÈ´ý°´¼üËÉ¿ª
- 685   3              }
- 686   2              else if (TOUCH_KEY_ID_4 == touch_key_last)
- 687   2              {
- 688   3                  // Èç¹ûKEY4±»´¥Ãþ
- 689   3                  flag_is_double_click = __is_double_click(touch_key_last);
- 690   3                  if (flag_is_double_click)
- 691   3                  {
- 692   4                      // Èç¹ûÓÐ°´¼üË«»÷
- 693   4      #if USE_MY_DEBUG
+ 184   4                      send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY3); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
+ 185   4                  }
+ 186   3      
+ 187   3                  touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_WAIT_SHORT_PRESS_RELEASE; // µÈ´ý°´¼üËÉ¿ª
+ 188   3              }
+ 189   2              else if (TOUCH_KEY_ID_4 == touch_key_last)
+ 190   2              {
+ 191   3                  // Èç¹ûKEY4±»´¥Ãþ
+ 192   3                  flag_is_double_click = __is_double_click(touch_key_last);
+ 193   3                  if (flag_is_double_click)
+ 194   3                  {
+ 195   4                      // Èç¹ûÓÐ°´¼üË«»÷
+ 196   4      #if USE_MY_DEBUG
                               printf("k4 double press\n");
               #endif
- 696   4                      send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY4); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
- 697   4                  }
- 698   3                  else
- 699   3                  {
- 700   4                      // Èç¹ûÃ»ÓÐ°´¼üË«»÷£¬ËµÃ÷ÊÇ¶Ì°´
- 701   4      #if USE_MY_DEBUG
+ 199   4                      send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY4); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
+ 200   4                  }
+ 201   3                  else
+ 202   3                  {
+ 203   4                      // Èç¹ûÃ»ÓÐ°´¼üË«»÷£¬ËµÃ÷ÊÇ¶Ì°´
+ 204   4      #if USE_MY_DEBUG
                               printf("k4 press\n");
               #endif
- 704   4                      send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY4); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
- 705   4                  }
- 706   3      
- 707   3                  touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_WAIT_SHORT_PRESS_RELEASE; // µÈ´ý°´¼üËÉ¿ª
- 708   3              }
- 709   2              else if (TOUCH_KEY_ID_5 == touch_key_last)
- 710   2              {
- 711   3                  // Èç¹ûKEY5±»´¥Ãþ
- 712   3                  flag_is_double_click = __is_double_click(touch_key_last);
- 713   3                  if (flag_is_double_click)
- 714   3                  {
- 715   4                      // Èç¹ûÓÐ°´¼üË«»÷
- 716   4      #if USE_MY_DEBUG
+ 207   4                      send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY4); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
+ 208   4                  }
+ 209   3      
+ 210   3                  touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_WAIT_SHORT_PRESS_RELEASE; // µÈ´ý°´¼üËÉ¿ª
+ 211   3              }
+ 212   2              else if (TOUCH_KEY_ID_5 == touch_key_last)
+ 213   2              {
+ 214   3                  // Èç¹ûKEY5±»´¥Ãþ
+ 215   3                  flag_is_double_click = __is_double_click(touch_key_last);
+ 216   3                  if (flag_is_double_click)
+ 217   3                  {
+ 218   4                      // Èç¹ûÓÐ°´¼üË«»÷
+ 219   4      #if USE_MY_DEBUG
                               printf("k5 double press\n");
               #endif
- 719   4                      send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY5); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
- 720   4                  }
- 721   3                  else
- 722   3                  {
- 723   4                      // Èç¹ûÃ»ÓÐ°´¼üË«»÷£¬ËµÃ÷ÊÇ¶Ì°´
- 724   4      #if USE_MY_DEBUG
+ 222   4                      send_status_keyval(KEY_PRESS_DOUBLECLICK, TOUCH_KEY5); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
+ 223   4                  }
+ 224   3                  else
+ 225   3                  {
+ 226   4                      // Èç¹ûÃ»ÓÐ°´¼üË«»÷£¬ËµÃ÷ÊÇ¶Ì°´
+ 227   4      #if USE_MY_DEBUG
                               printf("k5 press\n");
               #endif
- 727   4                      send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY5); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
- 728   4                  }
- 729   3      
- 730   3                  touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_WAIT_SHORT_PRESS_RELEASE; // µÈ´ý°´¼üËÉ¿ª
- 731   3              }
- 732   2          }
- 733   1      
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/14/2024 08:58:50 PAGE 13  
+ 230   4                      send_status_keyval(KEY_PRESS_SHORT, TOUCH_KEY5); // ·¢ËÍ´øÓÐ×´Ì¬µÄ¼üÖµ
+ 231   4                  }
+ 232   3      
+ 233   3                  touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_WAIT_SHORT_PRESS_RELEASE; // µÈ´ý°´¼üËÉ¿ª
+ 234   3              }
+ 235   2          }
+ 236   1      
+ 237   1          if (TOUCH_KEY_SCAN_STATUS_IS_HANDLE_LONG_PRESS == touch_key_scan_status)
+ 238   1          {
+ 239   2              // ´¦Àí³¤°´
+C51 COMPILER V9.60.7.0   TK_USER                                                           12/02/2024 16:50:47 PAGE 5   
 
- 734   1          if (TOUCH_KEY_SCAN_STATUS_IS_HANDLE_LONG_PRESS == touch_key_scan_status)
- 735   1          {
- 736   2              // ´¦Àí³¤°´
- 737   2              if (TOUCH_KEY_ID_1 == touch_key)
- 738   2              {
- 739   3                  // Èç¹ûKEY1±»´¥Ãþ
- 740   3      
- 741   3      #if USE_MY_DEBUG
+ 240   2              if (TOUCH_KEY_ID_1 == touch_key)
+ 241   2              {
+ 242   3                  // Èç¹ûKEY1±»´¥Ãþ
+ 243   3      
+ 244   3      #if USE_MY_DEBUG
                           printf("k1 long press\n");
               #endif
- 744   3                  send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY1);
- 745   3              }
- 746   2              else if (TOUCH_KEY_ID_2 == touch_key)
- 747   2              {
- 748   3                  // Èç¹ûKEY2±»´¥Ãþ
- 749   3      
- 750   3      #if USE_MY_DEBUG
+ 247   3                  send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY1);
+ 248   3              }
+ 249   2              else if (TOUCH_KEY_ID_2 == touch_key)
+ 250   2              {
+ 251   3                  // Èç¹ûKEY2±»´¥Ãþ
+ 252   3      
+ 253   3      #if USE_MY_DEBUG
                           printf("k2 long press\n");
               #endif
- 753   3                  send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY2);
- 754   3              }
- 755   2              else if (TOUCH_KEY_ID_3 == touch_key)
- 756   2              {
- 757   3                  // Èç¹ûKEY3±»´¥Ãþ
- 758   3      
- 759   3      #if USE_MY_DEBUG
+ 256   3                  send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY2);
+ 257   3              }
+ 258   2              else if (TOUCH_KEY_ID_3 == touch_key)
+ 259   2              {
+ 260   3                  // Èç¹ûKEY3±»´¥Ãþ
+ 261   3      
+ 262   3      #if USE_MY_DEBUG
                           printf("k3 long press\n");
               #endif
- 762   3                  send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY3);
- 763   3              }
- 764   2              else if (TOUCH_KEY_ID_4 == touch_key)
- 765   2              {
- 766   3                  // Èç¹ûKEY4±»´¥Ãþ
- 767   3      
- 768   3      #if USE_MY_DEBUG
+ 265   3                  send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY3);
+ 266   3              }
+ 267   2              else if (TOUCH_KEY_ID_4 == touch_key)
+ 268   2              {
+ 269   3                  // Èç¹ûKEY4±»´¥Ãþ
+ 270   3      
+ 271   3      #if USE_MY_DEBUG
                           printf("k4 long press\n");
               #endif
- 771   3                  send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY4);
- 772   3              }
- 773   2              else if (TOUCH_KEY_ID_5 == touch_key)
- 774   2              {
- 775   3                  // Èç¹ûKEY5±»´¥Ãþ
- 776   3      
- 777   3      #if USE_MY_DEBUG
+ 274   3                  send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY4);
+ 275   3              }
+ 276   2              else if (TOUCH_KEY_ID_5 == touch_key)
+ 277   2              {
+ 278   3                  // Èç¹ûKEY5±»´¥Ãþ
+ 279   3      
+ 280   3      #if USE_MY_DEBUG
                           printf("k5 long press\n");
               #endif
- 780   3                  send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY5);
- 781   3              }
- 782   2      
- 783   2              touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_HANDLE_HOLD_PRESS; // Ìø×ªµ½³¤°´³ÖÐø
- 784   2          }
- 785   1      
- 786   1          if (TOUCH_KEY_SCAN_STATUS_IS_HANDLE_HOLD_PRESS == touch_key_scan_status)
- 787   1          {
- 788   2              // ´¦Àí³¤°´³ÖÐø
- 789   2      
- 790   2              if (touch_key_last == touch_key)
- 791   2              {
- 792   3                  touch_time_cnt++;
- 793   3                  if (TOUCH_KEY_ID_1 == touch_key)
- 794   3                  {
- 795   4                      if (touch_time_cnt >= HOLD_PRESS_TIME_THRESHOLD_MS)
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/14/2024 08:58:50 PAGE 14  
+ 283   3                  send_status_keyval(KEY_PRESS_LONG, TOUCH_KEY5);
+ 284   3              }
+ 285   2      
+ 286   2              touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_HANDLE_HOLD_PRESS; // Ìø×ªµ½³¤°´³ÖÐø
+ 287   2          }
+ 288   1      
+ 289   1          if (TOUCH_KEY_SCAN_STATUS_IS_HANDLE_HOLD_PRESS == touch_key_scan_status)
+ 290   1          {
+ 291   2              // ´¦Àí³¤°´³ÖÐø
+ 292   2      
+ 293   2              if (touch_key_last == touch_key)
+ 294   2              {
+ 295   3                  touch_time_cnt++;
+ 296   3                  if (TOUCH_KEY_ID_1 == touch_key)
+ 297   3                  {
+ 298   4                      if (touch_time_cnt >= HOLD_PRESS_TIME_THRESHOLD_MS)
+ 299   4                      {
+ 300   5                          touch_time_cnt = 0;
+ 301   5      #if USE_MY_DEBUG
+C51 COMPILER V9.60.7.0   TK_USER                                                           12/02/2024 16:50:47 PAGE 6   
 
- 796   4                      {
- 797   5                          touch_time_cnt = 0;
- 798   5      #if USE_MY_DEBUG
                                   printf("k1 continue press\n");
               #endif
- 801   5                          send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY1);
- 802   5                      }
- 803   4                  }
- 804   3                  else if (TOUCH_KEY_ID_2 == touch_key)
- 805   3                  {
- 806   4                      if (touch_time_cnt >= HOLD_PRESS_TIME_THRESHOLD_MS)
- 807   4                      {
- 808   5                          touch_time_cnt = 0;
- 809   5      #if USE_MY_DEBUG
+ 304   5                          send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY1);
+ 305   5                      }
+ 306   4                  }
+ 307   3                  else if (TOUCH_KEY_ID_2 == touch_key)
+ 308   3                  {
+ 309   4                      if (touch_time_cnt >= HOLD_PRESS_TIME_THRESHOLD_MS)
+ 310   4                      {
+ 311   5                          touch_time_cnt = 0;
+ 312   5      #if USE_MY_DEBUG
                                   printf("k2 continue press\n");
               #endif
- 812   5                          send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY2);
- 813   5                      }
- 814   4                  }
- 815   3                  else if (TOUCH_KEY_ID_3 == touch_key)
- 816   3                  {
- 817   4                      if (touch_time_cnt >= HOLD_PRESS_TIME_THRESHOLD_MS)
- 818   4                      {
- 819   5                          touch_time_cnt = 0;
- 820   5      #if USE_MY_DEBUG
+ 315   5                          send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY2);
+ 316   5                      }
+ 317   4                  }
+ 318   3                  else if (TOUCH_KEY_ID_3 == touch_key)
+ 319   3                  {
+ 320   4                      if (touch_time_cnt >= HOLD_PRESS_TIME_THRESHOLD_MS)
+ 321   4                      {
+ 322   5                          touch_time_cnt = 0;
+ 323   5      #if USE_MY_DEBUG
                                   printf("k3 continue press\n");
               #endif
- 823   5                          send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY3);
- 824   5                      }
- 825   4                  }
- 826   3                  else if (TOUCH_KEY_ID_4 == touch_key)
- 827   3                  {
- 828   4                      if (touch_time_cnt >= HOLD_PRESS_TIME_THRESHOLD_MS)
- 829   4                      {
- 830   5                          touch_time_cnt = 0;
- 831   5      #if USE_MY_DEBUG
+ 326   5                          send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY3);
+ 327   5                      }
+ 328   4                  }
+ 329   3                  else if (TOUCH_KEY_ID_4 == touch_key)
+ 330   3                  {
+ 331   4                      if (touch_time_cnt >= HOLD_PRESS_TIME_THRESHOLD_MS)
+ 332   4                      {
+ 333   5                          touch_time_cnt = 0;
+ 334   5      #if USE_MY_DEBUG
                                   printf("k4 continue press\n");
               #endif
- 834   5                          send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY4);
- 835   5                      }
- 836   4                  }
- 837   3                  else if (TOUCH_KEY_ID_5 == touch_key)
- 838   3                  {
- 839   4                      if (touch_time_cnt >= HOLD_PRESS_TIME_THRESHOLD_MS)
- 840   4                      {
- 841   5                          touch_time_cnt = 0;
- 842   5      #if USE_MY_DEBUG
+ 337   5                          send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY4);
+ 338   5                      }
+ 339   4                  }
+ 340   3                  else if (TOUCH_KEY_ID_5 == touch_key)
+ 341   3                  {
+ 342   4                      if (touch_time_cnt >= HOLD_PRESS_TIME_THRESHOLD_MS)
+ 343   4                      {
+ 344   5                          touch_time_cnt = 0;
+ 345   5      #if USE_MY_DEBUG
                                   printf("k5 continue press\n");
               #endif
- 845   5                          send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY5);
- 846   5                      }
- 847   4                  }
- 848   3      
- 849   3                  delay_ms(1);
- 850   3              }
- 851   2              else
- 852   2              {
- 853   3                  // Èç¹ûÖ®Ç°¼ì²âµ½µÄ°´¼üÓëµ±Ç°¼ì²âµ½µÄ°´¼ü²»Ò»ÖÂ£¬
- 854   3                  // ËµÃ÷ ¿ÉÄÜËÉ¿ªÁËÊÖ »òÊÇ Ò»Ö»ÊÖ°´×¡ÁËÔ­À´µÄ°´¼üÁíÒ»Ö»ÊÖ°´ÁËÆäËû°´¼ü
- 855   3      
- 856   3                  // Ìø×ªµ½µÈ´ý³¤°´ËÉ¿ª
- 857   3                  touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_WAIT_LONG_PRESS_RELEASE;
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/14/2024 08:58:50 PAGE 15  
+ 348   5                          send_status_keyval(KEY_PRESS_CONTINUE, TOUCH_KEY5);
+ 349   5                      }
+ 350   4                  }
+ 351   3      
+ 352   3                  delay_ms(1);
+ 353   3              }
+ 354   2              else
+ 355   2              {
+ 356   3                  // Èç¹ûÖ®Ç°¼ì²âµ½µÄ°´¼üÓëµ±Ç°¼ì²âµ½µÄ°´¼ü²»Ò»ÖÂ£¬
+ 357   3                  // ËµÃ÷ ¿ÉÄÜËÉ¿ªÁËÊÖ »òÊÇ Ò»Ö»ÊÖ°´×¡ÁËÔ­À´µÄ°´¼üÁíÒ»Ö»ÊÖ°´ÁËÆäËû°´¼ü
+ 358   3      
+ 359   3                  // Ìø×ªµ½µÈ´ý³¤°´ËÉ¿ª
+ 360   3                  touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_WAIT_LONG_PRESS_RELEASE;
+ 361   3              }
+ 362   2          }
+ 363   1      
+C51 COMPILER V9.60.7.0   TK_USER                                                           12/02/2024 16:50:47 PAGE 7   
 
- 858   3              }
- 859   2          }
- 860   1      
- 861   1          if ((TOUCH_KEY_SCAN_STATUS_IS_WAIT_LONG_PRESS_RELEASE == touch_key_scan_status) ||
- 862   1              (TOUCH_KEY_SCAN_STATUS_IS_WAIT_SHORT_PRESS_RELEASE == touch_key_scan_status))
- 863   1          {
- 864   2              // Èç¹ûÊÇµÈ´ý°´¼üËÉ¿ª
- 865   2              static volatile u16 loose_cnt = 0; // ´æ·ÅËÉÊÖ¼ÆÊýÖµ
- 866   2      
- 867   2              if (touch_key == 0)
- 868   2              {
- 869   3                  loose_cnt++;
- 870   3                  delay_ms(1);
- 871   3              }
- 872   2              else
- 873   2              {
- 874   3                  // Ö»ÒªÓÐÒ»´Î¼ì²âµ½°´¼ü£¬ËµÃ÷Ã»ÓÐËÉ¿ªÊÖ
- 875   3                  loose_cnt = 0;
- 876   3              }
- 877   2      
- 878   2              if (loose_cnt >= LOOSE_PRESS_CNT_MS) // ÕâÀïµÄ±È½ÏÖµÐèÒª×¢Òâ£¬²»ÄÜ´óÓÚ±äÁ¿ÀàÐÍ¶ÔÓ¦µÄ×î´óÖµ
- 879   2              {
- 880   3                  loose_cnt = 0; // Çå¿ÕËÉÊÖ¼ÆÊý
- 881   3                  // Èç¹û xx msÄÚÃ»ÓÐ¼ì²âµ½°´¼ü°´ÏÂ£¬ËµÃ÷ÒÑ¾­ËÉ¿ªÊÖ
- 882   3      
- 883   3                  if (TOUCH_KEY_SCAN_STATUS_IS_WAIT_LONG_PRESS_RELEASE == touch_key_scan_status)
- 884   3                  {
- 885   4                      if (TOUCH_KEY_ID_1 == touch_key_last)
- 886   4                      {
- 887   5      #if USE_MY_DEBUG
+ 364   1          if ((TOUCH_KEY_SCAN_STATUS_IS_WAIT_LONG_PRESS_RELEASE == touch_key_scan_status) ||
+ 365   1              (TOUCH_KEY_SCAN_STATUS_IS_WAIT_SHORT_PRESS_RELEASE == touch_key_scan_status))
+ 366   1          {
+ 367   2              // Èç¹ûÊÇµÈ´ý°´¼üËÉ¿ª
+ 368   2              static volatile u16 loose_cnt = 0; // ´æ·ÅËÉÊÖ¼ÆÊýÖµ
+ 369   2      
+ 370   2              if (touch_key == 0)
+ 371   2              {
+ 372   3                  loose_cnt++;
+ 373   3                  delay_ms(1);
+ 374   3              }
+ 375   2              else
+ 376   2              {
+ 377   3                  // Ö»ÒªÓÐÒ»´Î¼ì²âµ½°´¼ü£¬ËµÃ÷Ã»ÓÐËÉ¿ªÊÖ
+ 378   3                  loose_cnt = 0;
+ 379   3              }
+ 380   2      
+ 381   2              if (loose_cnt >= LOOSE_PRESS_CNT_MS) // ÕâÀïµÄ±È½ÏÖµÐèÒª×¢Òâ£¬²»ÄÜ´óÓÚ±äÁ¿ÀàÐÍ¶ÔÓ¦µÄ×î´óÖµ
+ 382   2              {
+ 383   3                  loose_cnt = 0; // Çå¿ÕËÉÊÖ¼ÆÊý
+ 384   3                  // Èç¹û xx msÄÚÃ»ÓÐ¼ì²âµ½°´¼ü°´ÏÂ£¬ËµÃ÷ÒÑ¾­ËÉ¿ªÊÖ
+ 385   3      
+ 386   3                  if (TOUCH_KEY_SCAN_STATUS_IS_WAIT_LONG_PRESS_RELEASE == touch_key_scan_status)
+ 387   3                  {
+ 388   4                      if (TOUCH_KEY_ID_1 == touch_key_last)
+ 389   4                      {
+ 390   5      #if USE_MY_DEBUG
                                   printf("k1 long press loose\n");
               #endif
- 890   5                          send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY1);
- 891   5                      }
- 892   4                      else if (TOUCH_KEY_ID_2 == touch_key_last)
- 893   4                      {
- 894   5      #if USE_MY_DEBUG
+ 393   5                          send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY1);
+ 394   5                      }
+ 395   4                      else if (TOUCH_KEY_ID_2 == touch_key_last)
+ 396   4                      {
+ 397   5      #if USE_MY_DEBUG
                                   printf("k2 long press loose\n");
               #endif
- 897   5                          send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY2);
- 898   5                      }
- 899   4                      else if (TOUCH_KEY_ID_3 == touch_key_last)
- 900   4                      {
- 901   5      #if USE_MY_DEBUG
+ 400   5                          send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY2);
+ 401   5                      }
+ 402   4                      else if (TOUCH_KEY_ID_3 == touch_key_last)
+ 403   4                      {
+ 404   5      #if USE_MY_DEBUG
                                   printf("k3 long press loose\n");
               #endif
- 904   5                          send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY3);
- 905   5                      }
- 906   4                      else if (TOUCH_KEY_ID_4 == touch_key_last)
- 907   4                      {
- 908   5      #if USE_MY_DEBUG
+ 407   5                          send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY3);
+ 408   5                      }
+ 409   4                      else if (TOUCH_KEY_ID_4 == touch_key_last)
+ 410   4                      {
+ 411   5      #if USE_MY_DEBUG
                                   printf("k4 long press loose\n");
               #endif
- 911   5                          send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY4);
- 912   5                      }
- 913   4                      else if (TOUCH_KEY_ID_5 == touch_key_last)
- 914   4                      {
- 915   5      #if USE_MY_DEBUG
+ 414   5                          send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY4);
+ 415   5                      }
+ 416   4                      else if (TOUCH_KEY_ID_5 == touch_key_last)
+ 417   4                      {
+ 418   5      #if USE_MY_DEBUG
                                   printf("k5 long press loose\n");
               #endif
- 918   5                          send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY5);
- 919   5                      }
-C51 COMPILER V9.60.7.0   TK_USER                                                           11/14/2024 08:58:50 PAGE 16  
+ 421   5                          send_status_keyval(KEY_PRESS_LOOSE, TOUCH_KEY5);
+ 422   5                      }
+ 423   4                  }
+ 424   3      
+ 425   3                  touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_END; // Ìø×ªµ½ÊÕÎ²´¦Àí
+C51 COMPILER V9.60.7.0   TK_USER                                                           12/02/2024 16:50:47 PAGE 8   
 
- 920   4                  }
- 921   3      
- 922   3                  touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_IS_END; // Ìø×ªµ½ÊÕÎ²´¦Àí
- 923   3              }
- 924   2          }
- 925   1      
- 926   1          if (TOUCH_KEY_SCAN_STATUS_IS_END == touch_key_scan_status)
- 927   1          {
- 928   2              // ÊÕÎ²´¦Àí
- 929   2              touch_key = 0;
- 930   2              touch_key_last = 0;
- 931   2              touch_time_cnt = 0;
- 932   2      
- 933   2              touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_NONE;
- 934   2          }
- 935   1      }
- 936          
- 937          /*************************** (C) COPYRIGHT 2022 TAIXIN-IC ***** END OF FILE *****/
+ 426   3              }
+ 427   2          }
+ 428   1      
+ 429   1          if (TOUCH_KEY_SCAN_STATUS_IS_END == touch_key_scan_status)
+ 430   1          {
+ 431   2              // ÊÕÎ²´¦Àí
+ 432   2              touch_key = 0;
+ 433   2              touch_key_last = 0;
+ 434   2              touch_time_cnt = 0;
+ 435   2      
+ 436   2              touch_key_scan_status = TOUCH_KEY_SCAN_STATUS_NONE;
+ 437   2          }
+ 438   1      }
+ 439          
+ 440          /*************************** (C) COPYRIGHT 2022 TAIXIN-IC ***** END OF FILE *****/
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE

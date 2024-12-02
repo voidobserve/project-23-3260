@@ -31,7 +31,7 @@
 #define TK_UPDATE_CNT                   ( 15 )                // BASE 更新时间(单位：10ms)
 #define TK_LONG_KEY_TIME                ( 75 )                // 长按键时间(单位：10ms)
 #define TK_VALID_TIME                   ( 500 )               // 按键有效时间(单位：10ms)
-#define TK_NM_CM_CNT                    ( 4 )                 // 按键消抖次数
+#define TK_NM_CM_CNT                    ( 10 )                 // 按键消抖次数
 #define TK_NOISE_VAL                    ( 10 )                // 按键噪声值
 #define TK_CM_VALE                      ( 5 )                 // 按键释放迟滞
 #define TK_CH_MAX                       ( 26 )                // 配置最大按键个数
@@ -110,13 +110,13 @@
  * TK11 使能位
  * TK11 通道灵敏度
  */
-#define TK11_CH_EN                      (0)
+#define TK11_CH_EN                      (1)   // 更换了K2的引脚
 #define TK11_THR_DATA                   (200)
 /*
  * TK12 使能位
  * TK12 通道灵敏度
  */
-#define TK12_CH_EN                      (0)
+#define TK12_CH_EN                      (1) // 更换了K5的引脚
 #define TK12_THR_DATA                   (200)
 /*
  * TK13 使能位
@@ -134,8 +134,9 @@
  * TK15 使能位
  * TK15 通道灵敏度
  */
-#define TK15_CH_EN                      (1) // 按键K5
-#define TK15_THR_DATA                   (50)
+// #define TK15_CH_EN                      (1) // 按键K5
+#define TK15_CH_EN                      (0) // 按键K5
+#define TK15_THR_DATA                   (200)
 /*
  * TK16 使能位
  * TK16 通道灵敏度
@@ -147,7 +148,7 @@
  * TK17 通道灵敏度
  */
 #define TK17_CH_EN                      (1) // 按键K4
-#define TK17_THR_DATA                   (50)
+#define TK17_THR_DATA                   (200)
 /*
  * TK18 使能位
  * TK18 通道灵敏度
@@ -183,13 +184,13 @@
  * TK23 通道灵敏度
  */
 #define TK23_CH_EN                      (1) // 按键K3
-#define TK23_THR_DATA                   (50)
+#define TK23_THR_DATA                   (200)
 /*
  * TK24 使能位
  * TK24 通道灵敏度
  */
 #define TK24_CH_EN                      (1) // 按键K1
-#define TK24_THR_DATA                   (50) // 基本上可以识别出短按、长按、双击
+#define TK24_THR_DATA                   (200) // 基本上可以识别出短按、长按、双击
 // #define TK24_THR_DATA                   (125) // 
 // #define TK24_THR_DATA                   (150) // 
 // #define TK24_THR_DATA                   (175) // 
@@ -198,8 +199,9 @@
  * TK25 使能位
  * TK25 通道灵敏度
  */
-#define TK25_CH_EN                      (1) // 按键K2
-#define TK25_THR_DATA                   (500) // 
+// #define TK25_CH_EN                      (1) // 按键K2
+#define TK25_CH_EN                      (0) // 按键K2
+#define TK25_THR_DATA                   (300) // 
 // #define TK25_THR_DATA                   (400) // 会有概率检测到K2按下
 
 

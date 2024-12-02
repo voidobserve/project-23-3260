@@ -14,9 +14,9 @@ char putchar(char uart_data)
 
 void uart0_config(void)
 {
-    P0_MD0 &= ~GPIO_P02_MODE_SEL(0x03);
-    P0_MD0 |= GPIO_P02_MODE_SEL(0x01); // 输出模式
-    FOUT_S02 = GPIO_FOUT_UART0_TX; // 复用为uart0_tx
+    P0_MD0 &= ~GPIO_P00_MODE_SEL(0x03);
+    P0_MD0 |= GPIO_P00_MODE_SEL(0x01); // 输出模式
+    FOUT_S00 = GPIO_FOUT_UART0_TX; // 复用为uart0_tx
 
     UART0_BAUD1 = (((SYSCLK - UART0_BAUD) / UART0_BAUD) >> 8) & 0xFF;
     UART0_BAUD0 = ((SYSCLK - UART0_BAUD) / UART0_BAUD) & 0xFF;

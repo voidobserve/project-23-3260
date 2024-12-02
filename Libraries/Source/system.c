@@ -51,7 +51,7 @@ void delay_ms(u32 ms)
 {
     while (ms--)
     {
-        // WDT_KEY = WDT_KEY_VAL(0xAA); // 喂狗操作(如果加了喂狗操作，还需要调节以下延时时间)
+        WDT_KEY = WDT_KEY_VAL(0xAA); // 喂狗操作(如果加了喂狗操作，还需要调节以下延时时间)
         
         delay(1100);
     }

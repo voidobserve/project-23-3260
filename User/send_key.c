@@ -1,6 +1,5 @@
 // 用于发送键值的源程序，使用到了定时器TMR1
 #include "send_key.h"
-// #include "tmr2.h" // 定时器TMR2可用于发送格式头的延时和每次发送间隔的延时
 
 volatile bit send_keyval_flag = 0; // 是否要发送键值的标志位，0--不发送，1--发送
 
@@ -26,7 +25,7 @@ void send_keyval_timer_init(void)
     __SetIRQnIP(TMR1_IRQn, TMR1_IQn_CFG); // 设置中断优先级（TMR1）
 
     TMR1_CONL &= ~TMR_PRESCALE_SEL(0x03); // 清除TMR1的预分频配置寄存器
-    TMR1_CONL |= TMR_PRESCALE_SEL(0x05);  // 配置TMR1的预分频，为16分频，即21MHz / 32 = 0.65625MHz，约0.65625us计数一次
+    TMR1_CONL |= TMR_PRESCALE_SEL(0x05);  // 配置TMR1的预分频，为16分频 
     TMR1_CONL &= ~TMR_MODE_SEL(0x03);     // 清除TMR1的模式配置寄存器
     TMR1_CONL |= TMR_MODE_SEL(0x01);      // 配置TMR1的模式为计数器模式，最后对HIRC的脉冲进行计数
 
@@ -210,7 +209,9 @@ void send_keyval(unsigned short send_data)
     tmr1_enable(); // 打开定时器，发送键值数据
     send_keyval_flag = 1;
     while (send_keyval_flag != 0) // 等待发送完成
-        ;
+    {
+        WDT_KEY = WDT_KEY_VAL(0xAA); // 喂狗
+    }
     tmr1_disable(); // 关闭定时器
 
     delay_ms(10); // 每个键值至少间隔10ms（要求是5~10ms）

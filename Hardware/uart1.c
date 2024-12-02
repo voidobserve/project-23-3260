@@ -36,31 +36,29 @@ void uart1_recv_err_handle(void)
 {
     if (CUR_RECV_STATUS_ERR == flag_cur_recv_status)
     {
-        // 如果接收协议头和协议尾出错
+// 如果接收协议头和协议尾出错
+#if USE_MY_DEBUG
+        // printf("recv err\n");
+#endif
         memset(&instruction, 0xFF, sizeof(instruction));
         memset(aip650_show_buff, 0x00, ARRAY_SIZE(aip650_show_buff));
         aip650_show_refresh();
-
-#if USE_MY_DEBUG
-        printf("recv err\n");
-#endif
 
         flag_cur_recv_status = CUR_RECV_STATUS_NONE;
     }
 
     if (tmr0_cnt >= 10)
     {
-        // 接收到协议头后，超过10ms没有收到数据
+// 接收到协议头后，超过10ms没有收到数据
+#if USE_MY_DEBUG
+        // printf("recv time out\n");
+#endif
         memset(&instruction, 0xFF, sizeof(instruction));
         memset(aip650_show_buff, 0x00, ARRAY_SIZE(aip650_show_buff));
         aip650_show_refresh();
         flag_cur_recv_status = CUR_RECV_STATUS_NONE;
         tmr0_disable();
         tmr0_cnt = 0;
-
-#if USE_MY_DEBUG
-        printf("recv time out\n");
-#endif
     }
 
     // printf("tmr0 cnt %d\n", (u16)tmr0_cnt);

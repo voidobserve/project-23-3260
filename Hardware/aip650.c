@@ -279,7 +279,7 @@ static void __aip650_show_led_of_touch(u8 led_data)
     }
 }
 
-//
+// 
 void aip650_show_handle(instruction_t instruction)
 {
     // 对指令进行检查，是否符合协议的格式
@@ -288,6 +288,7 @@ void aip650_show_handle(instruction_t instruction)
         (instruction.point > 0x03) ||
         (instruction.led > 0x1F) /* 数值超出了LED能够显示的范围 */)
     {
+        // 清空显示，然后退出
         memset(aip650_show_buff, 0x00, ARRAY_SIZE(aip650_show_buff));
         aip650_show_refresh();
         return;
